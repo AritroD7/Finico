@@ -8,7 +8,6 @@ client/.DS_Store
 client/.env
 client/.env.local
 client/.env.*.local
-
 # --- Python/Flask
 server/.venv/
 server/venv/
@@ -19,18 +18,15 @@ server/*.sqlite
 server/.python-version
 server/.DS_Store
 server/.env
-
 # --- IDE/OS
 .vscode/
 .idea/
 .DS_Store
 Thumbs.db
-
 # --- Logs & temp
 *.log
 *.tmp
 *.swp
-
 # --- Archives
 *.zip
 *.7z
