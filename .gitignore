@@ -1,0 +1,38 @@
+# --- Node/React (Vite)
+client/node_modules/
+client/dist/
+client/.vite/
+client/.eslintcache
+client/*.local
+client/.DS_Store
+client/.env
+client/.env.local
+client/.env.*.local
+
+# --- Python/Flask
+server/.venv/
+server/venv/
+server/__pycache__/
+server/.pytest_cache/
+server/instance/
+server/*.sqlite
+server/.python-version
+server/.DS_Store
+server/.env
+
+# --- IDE/OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# --- Logs & temp
+*.log
+*.tmp
+*.swp
+
+# --- Archives
+*.zip
+*.7z
+*.tar
+*.tar.gz
