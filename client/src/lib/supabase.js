@@ -2,8 +2,8 @@
 import { createClient } from '@supabase/supabase-js'
 
 // Read Vite envs (must start with VITE_)
-const url = (import.meta.env.VITE_SUPABASE_URL || '').trim()
-const anon = (import.meta.env.VITE_SUPABASE_ANON_KEY || '').trim()
+const url = (import.meta.env.VITE_SUPABASE_URL || 'https://zbaktdqzvhbekuvmvprs.supabase.co').trim()
+const anon = (import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpiYWt0ZHF6dmhiZWt1dm12cHJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU2ODYyOTYsImV4cCI6MjA3MTI2MjI5Nn0.MHctusDQOktYf-qpZXXFQVWn_idLakV08LQ8-I122pk').trim()
 
 // Fail fast in dev so we don't chase ghost 401s
 if (!url || !anon) {

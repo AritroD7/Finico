@@ -1,24 +1,29 @@
-import React from "react"
-import ReactDOM from "react-dom/client"
-import { BrowserRouter } from "react-router-dom"
-import App from "./App.jsx"
-// client/src/main.jsx (top)
-//import './index.css';
-//import './styles.css';
-import '../src/styles/ui.css'; // <- import last
-import { AuthProvider } from "./hooks/useAuth.jsx"
-import { CurrencyProvider } from "./context/Currency.jsx"
+// FILE: client/src/main.jsx
+import React from "react";
+import ReactDOM from "react-dom/client";
+import { BrowserRouter } from "react-router-dom";
+import App from "./App";
 
-import './styles/ui.css'
+import "./index.css";
+import "./styles/ui.css"; // <- extra guard so UI styles are definitely loaded
+
+import ErrorBoundary from "./components/ErrorBoundary";
+import { ToasterProvider } from "./components/Toaster";
+import { CurrencyProvider } from "./context/Currency";
+import { AuthProvider } from "./hooks/useAuth";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <BrowserRouter>
-      <AuthProvider>
+    <ErrorBoundary>
+      <ToasterProvider>
         <CurrencyProvider>
-          <App />
+          <AuthProvider>
+            <BrowserRouter>
+              <App />
+            </BrowserRouter>
+          </AuthProvider>
         </CurrencyProvider>
-      </AuthProvider>
-    </BrowserRouter>
+      </ToasterProvider>
+    </ErrorBoundary>
   </React.StrictMode>
-)
+);

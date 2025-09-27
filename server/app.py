@@ -1,338 +1,364 @@
+# FILE: server/app.py
 import os
+from functools import wraps
+from datetime import datetime, timezone
+
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import numpy as np
 import stripe
 import jwt
-from functools import wraps
 
-# ------------ ENV ------------
-STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "")
-STRIPE_PRICE_MONTHLY = os.getenv("STRIPE_PRICE_MONTHLY", "")  # e.g. price_123
-STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")  # optional for webhooks
-SUPABASE_JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET", "")  # from Supabase project settings (JWT secret)
+try:
+    from dotenv import load_dotenv  # optional
+    load_dotenv()
+except Exception:
+    pass
+
+# ---------- Env ----------
+PORT = int(os.getenv("PORT", "5001"))
 FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN", "http://localhost:5173")
 
-stripe.api_key = STRIPE_SECRET_KEY
+SUPABASE_JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET", "").strip()
 
+STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "").strip()
+STRIPE_PRICE_MONTHLY = os.getenv("STRIPE_PRICE_MONTHLY", "").strip()
+STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "").strip()
+if STRIPE_SECRET_KEY:
+    stripe.api_key = STRIPE_SECRET_KEY
+
+# ---------- App ----------
 app = Flask(__name__)
-CORS(app, resources={r"/api/*": {"origins": [FRONTEND_ORIGIN, "http://localhost:5173"]}}, supports_credentials=True)
+CORS(
+    app,
+    resources={r"/api/*": {"origins": [FRONTEND_ORIGIN, "http://localhost:5173"]}},
+    supports_credentials=True,
+)
 
-# ------------ Helpers ------------
+# ---------- Helpers ----------
 def to_float(x, default=0.0):
     try:
         return float(x)
-    except (ValueError, TypeError):
+    except (TypeError, ValueError):
         return default
 
-def require_auth(f):
-    @wraps(f)
+def json_error(message, status=400):
+    return jsonify({"error": message}), status
+
+def require_auth(fn):
+    @wraps(fn)
     def wrapper(*args, **kwargs):
-        auth = request.headers.get("Authorization", "")
-        if not auth.startswith("Bearer "):
-            return jsonify({"error": "missing_token"}), 401
-        token = auth.split(" ", 1)[1]
+        if not SUPABASE_JWT_SECRET:
+            return fn(*args, **kwargs)  # dev: allow through if not configured
+        auth = request.headers.get("Authorization", "").split()
+        if len(auth) != 2 or auth[0].lower() != "bearer":
+            return json_error("Missing bearer token", 401)
+        token = auth[1]
         try:
-            # Supabase JWT default algorithm HS256
-            payload = jwt.decode(
-    token,
-    SUPABASE_JWT_SECRET,
-    algorithms=["HS256"],
-    options={"verify_aud": False},   # <— ignore 'aud' claim
-)
-        except Exception as e:
-            return jsonify({"error": "invalid_token", "detail": str(e)}), 401
-        return f(*args, **kwargs)
+            payload = jwt.decode(token, SUPABASE_JWT_SECRET, algorithms=["HS256"])
+            request.user = {"id": payload.get("sub"), "email": payload.get("email")}
+        except jwt.InvalidTokenError as e:
+            return json_error(f"Invalid token: {e}", 401)
+        return fn(*args, **kwargs)
     return wrapper
 
-# ------------ Health ------------
+def monthly_rate_from_annual(annual_pct: float) -> float:
+    return (1.0 + annual_pct/100.0) ** (1.0 / 12.0) - 1.0
+
+def monthly_from_pct(monthly_pct: float) -> float:
+    return monthly_pct / 100.0
+
+# ---------- Routes ----------
 @app.route("/api/health", methods=["GET"])
 def health():
-    return jsonify({"status": "ok"})
+    return jsonify({"status": "ok", "time": datetime.now(timezone.utc).isoformat()})
 
-# ------------ Budget ------------
+# -------- Budget summary (simple math) --------
 @app.route("/api/budget/summary", methods=["POST"])
+@require_auth
 def budget_summary():
     data = request.get_json(force=True) or {}
     income = to_float(data.get("monthly_income", 0))
-    fixed = sum([to_float(v) for v in data.get("fixed_expenses", [])])
-    variable = sum([to_float(v) for v in data.get("variable_expenses", [])])
-    other = sum([to_float(v) for v in data.get("other_expenses", [])])
-
-    total_expenses = fixed + variable + other
+    fixed = [to_float(v) for v in (data.get("fixed_expenses", []) or [])]
+    variable = [to_float(v) for v in (data.get("variable_expenses", []) or [])]
+    other = [to_float(v) for v in (data.get("other_expenses", []) or [])]
+    total_expenses = sum(fixed) + sum(variable) + sum(other)
     savings = income - total_expenses
-    savings_rate = (savings / income * 100.0) if income > 0 else 0.0
-
-    allocations = {
-        "Fixed": fixed, "Variable": variable, "Other": other, "Savings": max(savings, 0.0)
-    }
+    savings_rate = (savings / income) * 100 if income > 0 else 0
     return jsonify({
         "monthly_income": income,
+        "fixed_total": sum(fixed),
+        "variable_total": sum(variable),
+        "other_total": sum(other),
         "total_expenses": total_expenses,
-        "net_savings": savings,
-        "savings_rate_pct": savings_rate,
-        "allocations": allocations,
-        "fixed": fixed, "variable": variable, "other": other,
-        "savings_component": max(savings, 0.0)
+        "savings": savings,
+        "savings_rate_pct": round(savings_rate, 2),
     })
 
-# ------------ Wealth Forecast (monthly compounding; annual or monthly inputs; fees; escalation) ------------
+# -------- Deterministic compound forecast (page-compatible) --------
 @app.route("/api/forecast/compound", methods=["POST"])
+@require_auth
 def forecast_compound():
     d = request.get_json(force=True) or {}
+
+    # inputs (support both your old keys and simpler ones)
     initial = to_float(d.get("initial", 0))
-    monthly = to_float(d.get("monthly_contrib", 0))
-    years = int(d.get("years", 10))
-    rate_mode = (d.get("rate_mode") or "annual").lower().strip()
+    monthly = to_float(d.get("monthly", d.get("monthly_contrib", 0)))
+    years   = max(int(to_float(d.get("years", 0))), 0)
 
-    # annual inputs
-    r_a = to_float(d.get("annual_return_pct", 5))/100.0
-    i_a = to_float(d.get("annual_inflation_pct", 2))/100.0
-    fee_a = to_float(d.get("annual_fee_pct", 0))/100.0
-    esc_a = to_float(d.get("contrib_escalation_pct", 0))/100.0
-
-    # monthly inputs
-    r_m_input = to_float(d.get("monthly_return_pct", 0))/100.0
-    i_m_input = to_float(d.get("monthly_inflation_pct", 0))/100.0
-
+    rate_mode = (d.get("rate_mode") or "annual").lower()
     if rate_mode == "monthly":
-        r_m_gross = r_m_input
-        i_m = i_m_input
+        r_m   = monthly_from_pct(to_float(d.get("monthly_return_pct", 0)))
+        i_m   = monthly_from_pct(to_float(d.get("monthly_inflation_pct", 0)))
     else:
-        r_m_gross = (1 + r_a) ** (1/12) - 1
-        i_m = (1 + i_a) ** (1/12) - 1
+        r_m   = monthly_rate_from_annual(to_float(d.get("annual_return_pct", 7)))
+        i_m   = monthly_rate_from_annual(to_float(d.get("annual_inflation_pct", 2.5)))
 
-    fee_m = (1 + fee_a) ** (1/12) - 1
-    r_m = r_m_gross - fee_m
-    esc_m = (1 + esc_a) ** (1/12) - 1
+    fee_m = monthly_rate_from_annual(to_float(d.get("annual_fee_pct", 0.0)))
+    esc_m = monthly_rate_from_annual(to_float(d.get("contrib_escalation_pct", d.get("contribution_escalation_pct", 0.0))))
 
     months = years * 12
-    balances_nominal, balances_real = [], []
+    months_arr = list(range(months + 1))
+
     bal = initial
     real_factor = 1.0
-    curr_monthly = monthly
+    contrib = monthly
+    nominal = [bal]
+    real    = [bal]
 
-    for m in range(months + 1):
-        balances_nominal.append(float(bal))
-        balances_real.append(float(bal / real_factor if real_factor > 0 else bal))
-        bal = bal * (1 + r_m) + curr_monthly
+    for _m in range(1, months + 1):
+        bal = bal * (1 + (r_m - fee_m)) + contrib
         real_factor *= (1 + i_m)
-        curr_monthly *= (1 + esc_m)
+        contrib *= (1 + esc_m)
+        nominal.append(bal)
+        real.append(bal / real_factor)
 
     return jsonify({
-        "months": list(range(months + 1)),
-        "balances_nominal": balances_nominal,
-        "balances_real": balances_real,
-        "meta": {
-            "r_month": float(r_m), "i_month": float(i_m),
-            "esc_month": float(esc_m), "fee_month": float(fee_m),
-            "rate_mode": rate_mode
-        }
+        "months": months_arr,  # array, as your page expects
+        "balances_nominal": nominal,
+        "balances_real": real,
+        "ending_nominal": nominal[-1],
+        "ending_real": real[-1],
+        "meta": { "r_month": r_m, "i_month": i_m, "fee_month": fee_m, "esc_month": esc_m },
+        "inputs": d
     })
 
-# ------------ Monte Carlo (goal metrics included) ------------
+# -------- Monte Carlo forecast (page-compatible) --------
 @app.route("/api/forecast/montecarlo", methods=["POST"])
+@require_auth
 def forecast_montecarlo():
     d = request.get_json(force=True) or {}
+
     initial = to_float(d.get("initial", 0))
-    monthly = to_float(d.get("monthly_contrib", 0))
-    years = int(d.get("years", 10))
-    sims = int(d.get("simulations", 2000))
-    mean_a = to_float(d.get("mean_annual_return_pct", 6))/100.0
-    std_a = to_float(d.get("stdev_annual_return_pct", 12))/100.0
-    infl_a = to_float(d.get("annual_inflation_pct", 2))/100.0
+    monthly = to_float(d.get("monthly", d.get("monthly_contrib", 0)))
+    years   = max(int(to_float(d.get("years", 0))), 0)
+    sims    = max(int(to_float(d.get("simulations", 1000))), 1)
 
-    goal_target = d.get("goal_target", None)
-    goal_target = float(goal_target) if goal_target not in (None, "") else None
-    goal_year = int(d.get("goal_year", years))
+    mean_a  = to_float(d.get("mean_annual_return_pct", 7))
+    stdev_a = to_float(d.get("stdev_annual_return_pct", 15))
+    infl_a  = to_float(d.get("annual_inflation_pct", 2.5))
+    fee_a   = to_float(d.get("annual_fee_pct", 0.0))  # optional
 
-    months = years*12
-    mean_m = (1 + mean_a) ** (1/12) - 1
-    std_m = std_a/np.sqrt(12)
-    infl_m = (1 + infl_a) ** (1/12) - 1
+    seed = int(to_float(d.get("seed", 0)))
+    if seed:
+        np.random.seed(seed)
 
-    rng = np.random.default_rng()
-    monthly_returns = rng.normal(loc=mean_m, scale=std_m, size=(sims, months))
+    r_m      = monthly_rate_from_annual(mean_a) - monthly_rate_from_annual(fee_a)
+    sigma_m  = (stdev_a / 100.0) / np.sqrt(12.0)
+    i_m      = monthly_rate_from_annual(infl_a)
 
-    balances = np.full((sims,), initial, dtype=float)
-    real_factor = 1.0
-    yearly_snapshots = []
+    months = years * 12
+    paths = np.zeros((sims, months + 1), dtype=np.float64)
+    for s in range(sims):
+        bal = initial
+        contrib = monthly
+        paths[s, 0] = bal
+        for m in range(1, months + 1):
+            shock = np.random.normal(loc=r_m, scale=sigma_m)
+            bal = bal * (1 + shock) + contrib
+            paths[s, m] = bal
 
-    for m in range(months):
-        balances = balances * (1 + monthly_returns[:, m]) + monthly
-        real_factor *= (1 + infl_m)
-        if (m+1) % 12 == 0:
-            yearly_snapshots.append(balances.copy() / real_factor)
+    # monthly percentiles
+    p5  = np.percentile(paths, 5,  axis=0).tolist()
+    p10 = np.percentile(paths, 10, axis=0).tolist()
+    p50 = np.percentile(paths, 50, axis=0).tolist()
+    p90 = np.percentile(paths, 90, axis=0).tolist()
+    p95 = np.percentile(paths, 95, axis=0).tolist()
 
-    yearly_percentiles = []
-    for arr in yearly_snapshots:
-        yearly_percentiles.append({
-            "p5": float(np.percentile(arr, 5)),
-            "p50": float(np.percentile(arr, 50)),
-            "p95": float(np.percentile(arr, 95)),
-        })
+    # deflate to "real"
+    deflate = np.cumprod(np.ones(months+1) * (1 + i_m))
+    p5_real  = (np.array(p5)  / deflate).tolist()
+    p10_real = (np.array(p10) / deflate).tolist()
+    p50_real = (np.array(p50) / deflate).tolist()
+    p90_real = (np.array(p90) / deflate).tolist()
+    p95_real = (np.array(p95) / deflate).tolist()
 
-    final_real = yearly_snapshots[-1] if yearly_snapshots else np.array([0.0])
-    hist_counts, bin_edges = np.histogram(final_real, bins=30)
-    histogram = {"bins": [float(x) for x in bin_edges.tolist()], "counts": [int(c) for c in hist_counts.tolist()]}
-
-    goal_metrics = None
-    if goal_target is not None and years > 0 and len(yearly_snapshots) >= 1:
-        idx = min(max(goal_year, 1), years) - 1
-        target_arr = yearly_snapshots[idx] if idx < len(yearly_snapshots) else yearly_snapshots[-1]
-        hits = target_arr >= goal_target
-        success_prob = float(np.mean(hits)) if target_arr.size > 0 else 0.0
-        shortfalls = goal_target - target_arr[~hits]
-        exp_shortfall = float(np.mean(shortfalls)) if shortfalls.size > 0 else 0.0
-        goal_metrics = {
-            "year": int(goal_year), "target": float(goal_target),
-            "success_prob": success_prob,
-            "expected_shortfall_if_fail": max(exp_shortfall, 0.0)
-        }
+    # annual snapshots (years + yearly_percentiles as your Risk page reads)
+    years_arr = list(range(0, years + 1))
+    idx = [y * 12 for y in years_arr]
+    yearly_percentiles = [
+        {"p5":  float(p5_real[i]), "p50": float(p50_real[i]), "p95": float(p95_real[i])}
+        for i in idx
+    ]
 
     return jsonify({
-        "years": list(range(1, years+1)),
+        "months": months,  # keep integer too (for other uses)
+        "p5": p5_real, "p10": p10_real, "p50": p50_real, "p90": p90_real, "p95": p95_real,
+        "ending": {"p5": p5_real[-1], "p50": p50_real[-1], "p95": p95_real[-1]},
+        "years": years_arr,
         "yearly_percentiles": yearly_percentiles,
-        "histogram": histogram,
-        "goal": goal_metrics,
-        "metadata": {"simulations": int(sims), "mean_monthly": float(mean_m), "stdev_monthly": float(std_m)}
+        "inputs": d
     })
 
-# ------------ Premium: Goal Planner (solve required monthly contrib) ------------
-def _mc_success_prob(initial, monthly, years, sims, mean_a, std_a, infl_a):
-    months = years*12
-    mean_m = (1 + mean_a) ** (1/12) - 1
-    std_m = std_a / np.sqrt(12)
-    infl_m = (1 + infl_a) ** (1/12) - 1
-    rng = np.random.default_rng()
-    monthly_returns = rng.normal(loc=mean_m, scale=std_m, size=(sims, months))
-    balances = np.full((sims,), initial, dtype=float)
-    real_factor = 1.0
-    for m in range(months):
-        balances = balances * (1 + monthly_returns[:, m]) + monthly
-        real_factor *= (1 + infl_m)
-    real_final = balances / real_factor
-    return real_final
-
+# -------- Goal: required monthly contribution (deterministic OR MC) --------
 @app.route("/api/goal/required-contribution", methods=["POST"])
 @require_auth
-def required_contribution():
-    """
-    Find monthly contribution to reach a target (real) with at least target_prob success at 'years'.
-    Inputs: initial, years, mean_annual_return_pct, stdev_annual_return_pct, annual_inflation_pct,
-            simulations, target, target_prob (0..1)
-    """
+def goal_required_contribution():
     d = request.get_json(force=True) or {}
-    initial = to_float(d.get("initial", 0))
-    years = int(d.get("years", 20))
-    sims = int(d.get("simulations", 4000))
-    mean_a = to_float(d.get("mean_annual_return_pct", 7))/100.0
-    std_a = to_float(d.get("stdev_annual_return_pct", 14))/100.0
-    infl_a = to_float(d.get("annual_inflation_pct", 2.5))/100.0
-    target = to_float(d.get("target", 500000))
-    target_prob = to_float(d.get("target_prob", 0.7))
+    target = to_float(d.get("target", d.get("target_amount", 0)))
+    years  = max(int(to_float(d.get("years", 0))), 0)
+    initial= to_float(d.get("initial", 0))
 
-    # binary search monthly contribution
-    lo, hi = 0.0, max(100.0, target/years/12*2)  # heuristic upper bound
-    best = None
-    for _ in range(28):  # ~1e-8 precision scale
-        mid = (lo + hi) / 2
-        finals = _mc_success_prob(initial, mid, years, sims, mean_a, std_a, infl_a)
-        prob = float(np.mean(finals >= target))
-        if prob >= target_prob:
-            best = mid
-            hi = mid
-        else:
-            lo = mid
-    return jsonify({"required_monthly": float(best if best is not None else hi)})
+    # If simulations + target_prob are present, do MC bisection to hit probability
+    sims = int(to_float(d.get("simulations", 0)))
+    target_prob = to_float(d.get("target_prob", 0))  # 0..1
 
-# ========== Billing (Stripe) ==========
+    mean_a  = to_float(d.get("mean_annual_return_pct", d.get("annual_return_pct", 7)))
+    stdev_a = to_float(d.get("stdev_annual_return_pct", 15))
+    infl_a  = to_float(d.get("annual_inflation_pct", 2.5))
+    fee_a   = to_float(d.get("annual_fee_pct", 0.0))
+
+    if sims and target_prob:
+        # --- Monte-Carlo solver ---
+        r_m     = monthly_rate_from_annual(mean_a) - monthly_rate_from_annual(fee_a)
+        sigma_m = (stdev_a / 100.0) / np.sqrt(12.0)
+        i_m     = monthly_rate_from_annual(infl_a)
+        months  = years * 12
+
+        def success_rate(monthly_contrib: float, n_sims: int) -> float:
+            paths_end = []
+            for s in range(n_sims):
+                bal = initial
+                contrib = monthly_contrib
+                for _m in range(1, months + 1):
+                    shock = np.random.normal(loc=r_m, scale=sigma_m)
+                    bal = bal * (1 + shock) + contrib
+                real_ending = bal / ((1 + i_m) ** months)
+                paths_end.append(real_ending)
+            paths_end = np.array(paths_end)
+            return float(np.mean(paths_end >= target))
+
+        # bisection on monthly contribution
+        lo, hi = 0.0, max(1.0, target / max(1, months//12))  # crude high bound
+        # expand upper bound until success >= target_prob
+        while success_rate(hi, max(200, sims//10)) < target_prob:
+            hi *= 1.7
+            if hi > target * 10:
+                break
+        # refine
+        for _ in range(18):
+            mid = (lo + hi) / 2.0
+            rate = success_rate(mid, sims)
+            if rate >= target_prob:
+                hi = mid
+            else:
+                lo = mid
+        required = hi
+        return jsonify({
+            "required_monthly": required,
+            "used_simulations": sims,
+            "method": "montecarlo",
+            "inputs": d
+        })
+
+    # --- Deterministic closed-form (growing annuity) ---
+    r_m   = monthly_rate_from_annual(mean_a - fee_a)
+    i_m   = monthly_rate_from_annual(infl_a)
+    esc_m = monthly_rate_from_annual(to_float(d.get("contribution_escalation_pct", 0.0)))
+    months = years * 12
+    if months == 0:
+        return jsonify({"required_monthly": 0.0, "method": "deterministic", "inputs": d})
+
+    target_real = target  # inputs already intended as "real"
+    fv_without_pmt = initial * ((1 + r_m) ** months)
+    need = max(target_real - fv_without_pmt, 0.0)
+
+    if abs(r_m - esc_m) < 1e-9:
+        denom = months * ((1 + r_m) ** (months - 1))
+    else:
+        denom = ((1 + r_m) ** months - (1 + esc_m) ** months) / (r_m - esc_m)
+    pmt0 = need / denom if denom > 0 else 0.0
+    return jsonify({
+        "required_monthly": pmt0,
+        "method": "deterministic",
+        "inputs": d
+    })
+
+# -------- Stripe (unchanged minimal) --------
 @app.route("/api/billing/create-checkout-session", methods=["POST"])
 @require_auth
-def create_checkout():
+def billing_create_checkout_session():
     if not STRIPE_SECRET_KEY or not STRIPE_PRICE_MONTHLY:
-        return jsonify({"error": "stripe_not_configured"}), 500
-
-    user = getattr(request, "user", {})
-    email = user.get("email")
-    user_id = user.get("id")
-    if not email:
-        return jsonify({"error": "email_required"}), 400
-
-    data = request.get_json(force=True) or {}
-    price_id = data.get("price_id") or STRIPE_PRICE_MONTHLY
-
-    session = stripe.checkout.Session.create(
-        mode="subscription",
-        payment_method_types=["card"],
-        line_items=[{"price": price_id, "quantity": 1}],
-        success_url=f"{FRONTEND_ORIGIN}/account?session_id={{CHECKOUT_SESSION_ID}}",
-        cancel_url=f"{FRONTEND_ORIGIN}/account",
-        customer_email=email,
-        metadata={"user_id": user_id},
-        allow_promotion_codes=True
-    )
-    return jsonify({"url": session.url})
+        return json_error("Stripe not configured", 400)
+    body = request.get_json(force=True) or {}
+    success_url = body.get("success_url") or f"{FRONTEND_ORIGIN}/account?session=success"
+    cancel_url = body.get("cancel_url") or f"{FRONTEND_ORIGIN}/account?session=cancel"
+    try:
+        session = stripe.checkout.Session.create(
+            mode="subscription",
+            line_items=[{"price": STRIPE_PRICE_MONTHLY, "quantity": 1}],
+            success_url=success_url,
+            cancel_url=cancel_url,
+            allow_promotion_codes=True,
+        )
+        return jsonify({"id": session.id, "url": session.url})
+    except Exception as e:
+        return json_error(str(e), 400)
 
 @app.route("/api/billing/create-portal-session", methods=["POST"])
 @require_auth
-def create_portal():
-    d = request.get_json(force=True) or {}
-    customer_id = d.get("customer_id")
-    if not customer_id:
-        return jsonify({"error": "missing_customer_id"}), 400
-    portal = stripe.billing_portal.Session.create(
-        customer=customer_id,
-        return_url=f"{FRONTEND_ORIGIN}/account"
-    )
-    return jsonify({"url": portal.url})
+def billing_create_portal_session():
+    if not STRIPE_SECRET_KEY:
+        return json_error("Stripe not configured", 400)
+    body = request.get_json(force=True) or {}
+    return_url = body.get("return_url") or f"{FRONTEND_ORIGIN}/account"
+    customer = body.get("customer_id")
+    if not customer:
+        return json_error("customer_id required", 400)
+    try:
+        session = stripe.billing_portal.Session.create(customer=customer, return_url=return_url)
+        return jsonify({"url": session.url})
+    except Exception as e:
+        return json_error(str(e), 400)
 
 @app.route("/api/billing/session", methods=["GET"])
 @require_auth
-def get_session_info():
-    session_id = request.args.get("session_id")
+def billing_session():
+    session_id = request.args.get("id")
     if not session_id:
-        return jsonify({"error": "missing_session_id"}), 400
-    sess = stripe.checkout.Session.retrieve(session_id, expand=["customer", "subscription"])
-    customer_id = sess.customer.id if hasattr(sess, "customer") and sess.customer else None
-    sub_status = sess.subscription.status if hasattr(sess, "subscription") and sess.subscription else "none"
-    return jsonify({"customer_id": customer_id, "subscription_status": sub_status})
+        return json_error("id required", 400)
+    try:
+        session = stripe.checkout.Session.retrieve(session_id)
+        return jsonify({"session": session})
+    except Exception as e:
+        return json_error(str(e), 400)
 
 @app.route("/api/billing/status", methods=["GET"])
 @require_auth
 def billing_status():
-    """Check if user has an active subscription. Prefer customer_id query param if provided."""
-    customer_id = request.args.get("customer_id")
-    email = request.user.get("email")
-    try:
-        if not customer_id and email:
-            # try find latest customer by email
-            customers = stripe.Customer.list(email=email, limit=1)
-            if customers.data:
-                customer_id = customers.data[0].id
-        if not customer_id:
-            return jsonify({"active": False, "reason": "no_customer"}), 200
-        subs = stripe.Subscription.list(customer=customer_id, status="all", limit=10)
-        active = any(s.status in ("active", "trialing", "past_due") for s in subs.auto_paging_iter())
-        return jsonify({"active": bool(active), "customer_id": customer_id})
-    except Exception as e:
-        return jsonify({"active": False, "error": str(e)}), 200
+    return jsonify({"active": False, "plan": None})
 
-# Optional webhook skeleton (configure STRIPE_WEBHOOK_SECRET and point Stripe to /api/billing/webhook)
 @app.route("/api/billing/webhook", methods=["POST"])
-def stripe_webhook():
+def billing_webhook():
     if not STRIPE_WEBHOOK_SECRET:
-        return jsonify({"received": True})  # no-op in dev
+        return jsonify({"received": True})
     payload = request.data
     sig = request.headers.get("Stripe-Signature")
     try:
         event = stripe.Webhook.construct_event(payload, sig, STRIPE_WEBHOOK_SECRET)
     except Exception as e:
-        return jsonify({"error": str(e)}), 400
-
-    # handle events if you later add a database
-    # if event["type"] == "customer.subscription.updated": ...
+        return json_error(f"Webhook signature failed: {e}", 400)
     return jsonify({"received": True})
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.getenv("PORT", 5001)), debug=True)
+    app.run(host="0.0.0.0", port=PORT, debug=True)

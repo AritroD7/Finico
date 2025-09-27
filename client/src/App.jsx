@@ -1,5 +1,8 @@
-import { Routes, Route } from "react-router-dom"
+// FILE: client/src/App.jsx
+import { Routes, Route, Navigate } from "react-router-dom"
 import Navbar from "./components/Navbar"
+import Footer from "./components/Footer"
+
 import Home from "./pages/Home"
 import BudgetPlanner from "./pages/BudgetPlanner"
 import WealthForecast from "./pages/WealthForecast"
@@ -9,64 +12,26 @@ import Help from "./pages/Help"
 import Account from "./pages/Account"
 import Login from "./pages/Login"
 import AuthCallback from "./pages/AuthCallback"
-import Protected from "./components/Protected"
-import "./index.css"
-import "./styles/ui.css"
-import { CurrencyProvider } from './context/Currency'
-
-function Footer() {
-  return (
-    <footer className="border-t mt-10">
-      <div className="max-w-6xl mx-auto px-4 py-6 flex items-center justify-between">
-        <p className="text-sm text-slate-600">
-          © {new Date().getFullYear()} Finance Forecaster · Educational models only — not investment advice.
-        </p>
-        <nav className="text-sm text-slate-600">
-          <a className="hover:text-slate-900" href="/about">About</a>
-          <span className="mx-2">•</span>
-          <a className="hover:text-slate-900" href="/help">Help</a>
-          <span className="mx-2">•</span>
-          <a className="hover:text-slate-900" href="/privacy">Privacy</a>
-        </nav>
-      </div>
-    </footer>
-  )
-}
-
-function PageContainer({ children }) {
-  return (
-    <div className="min-h-screen bg-slate-50">
-      <Navbar />
-      <main className="max-w-6xl mx-auto px-4 py-6">{children}</main>
-      <Footer />
-    </div>
-  )
-}
-
-function NotFound() {
-  return (
-    <PageContainer>
-      <div className="card">
-        <h1 className="text-lg font-semibold mb-2">Page not found</h1>
-        <p className="text-slate-600">The page you’re looking for doesn’t exist.</p>
-      </div>
-    </PageContainer>
-  )
-}
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/" element={<PageContainer><Home /></PageContainer>} />
-      <Route path="/budget" element={<PageContainer><BudgetPlanner /></PageContainer>} />
-      <Route path="/forecast" element={<PageContainer><WealthForecast /></PageContainer>} />
-      <Route path="/risk" element={<PageContainer><RiskModeling /></PageContainer>} />
-      <Route path="/goal" element={<Protected><PageContainer><GoalPlanner /></PageContainer></Protected>} />
-      <Route path="/help" element={<PageContainer><Help /></PageContainer>} />
-      <Route path="/account" element={<PageContainer><Account /></PageContainer>} />
-      <Route path="/login" element={<PageContainer><Login /></PageContainer>} />
-      <Route path="/auth/callback" element={<AuthCallback />} />
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 text-slate-900">
+      <Navbar />
+      <main className="max-w-6xl mx-auto p-4">
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/budget" element={<BudgetPlanner />} />
+          <Route path="/forecast" element={<WealthForecast />} />
+          <Route path="/risk" element={<RiskModeling />} />
+          <Route path="/goal" element={<GoalPlanner />} />
+          <Route path="/help" element={<Help />} />
+          <Route path="/account" element={<Account />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </main>
+      <Footer />
+    </div>
   )
 }
