@@ -7,9 +7,9 @@ import logoPng from "../assets/finico-logo.png";
  * so the header stays compact.
  */
 export default function Logo({
-  min = 60,
-  vw = 4.5,
-  max = 168,
+  min = 180,
+  vw = 6.5,
+  max = 288,
   className = "",
   alt = "Finico — Finance, simplified.",
 }) {

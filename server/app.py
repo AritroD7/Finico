@@ -35,6 +35,15 @@ CORS(
     supports_credentials=True,
 )
 
+# ---- Blueprints (register AFTER app exists to avoid NameError/circulars) ----
+try:
+    # Ensure this file exists at server/news_feed.py and exposes bp_news = Blueprint(...)
+    from news_feed import bp_news
+    app.register_blueprint(bp_news)
+except Exception as e:
+    # Safe in dev; remove try/except if you want a hard fail instead
+    print(f"[app] news_feed blueprint not loaded: {e}")
+
 # ---------- Helpers ----------
 def to_float(x, default=0.0):
     try:
@@ -134,7 +143,7 @@ def forecast_compound():
         real.append(bal / real_factor)
 
     return jsonify({
-        "months": months_arr,  # array, as your page expects
+        "months": months_arr,
         "balances_nominal": nominal,
         "balances_real": real,
         "ending_nominal": nominal[-1],
@@ -193,7 +202,7 @@ def forecast_montecarlo():
     p90_real = (np.array(p90) / deflate).tolist()
     p95_real = (np.array(p95) / deflate).tolist()
 
-    # annual snapshots (years + yearly_percentiles as your Risk page reads)
+    # annual snapshots
     years_arr = list(range(0, years + 1))
     idx = [y * 12 for y in years_arr]
     yearly_percentiles = [
@@ -202,7 +211,7 @@ def forecast_montecarlo():
     ]
 
     return jsonify({
-        "months": months,  # keep integer too (for other uses)
+        "months": years,
         "p5": p5_real, "p10": p10_real, "p50": p50_real, "p90": p90_real, "p95": p95_real,
         "ending": {"p5": p5_real[-1], "p50": p50_real[-1], "p95": p95_real[-1]},
         "years": years_arr,
@@ -210,7 +219,7 @@ def forecast_montecarlo():
         "inputs": d
     })
 
-# -------- Goal: required monthly contribution (deterministic OR MC) --------
+# -------- Goal: required monthly contribution --------
 @app.route("/api/goal/required-contribution", methods=["POST"])
 @require_auth
 def goal_required_contribution():
@@ -219,7 +228,6 @@ def goal_required_contribution():
     years  = max(int(to_float(d.get("years", 0))), 0)
     initial= to_float(d.get("initial", 0))
 
-    # If simulations + target_prob are present, do MC bisection to hit probability
     sims = int(to_float(d.get("simulations", 0)))
     target_prob = to_float(d.get("target_prob", 0))  # 0..1
 
@@ -229,7 +237,6 @@ def goal_required_contribution():
     fee_a   = to_float(d.get("annual_fee_pct", 0.0))
 
     if sims and target_prob:
-        # --- Monte-Carlo solver ---
         r_m     = monthly_rate_from_annual(mean_a) - monthly_rate_from_annual(fee_a)
         sigma_m = (stdev_a / 100.0) / np.sqrt(12.0)
         i_m     = monthly_rate_from_annual(infl_a)
@@ -248,14 +255,11 @@ def goal_required_contribution():
             paths_end = np.array(paths_end)
             return float(np.mean(paths_end >= target))
 
-        # bisection on monthly contribution
-        lo, hi = 0.0, max(1.0, target / max(1, months//12))  # crude high bound
-        # expand upper bound until success >= target_prob
+        lo, hi = 0.0, max(1.0, target / max(1, months//12))
         while success_rate(hi, max(200, sims//10)) < target_prob:
             hi *= 1.7
             if hi > target * 10:
                 break
-        # refine
         for _ in range(18):
             mid = (lo + hi) / 2.0
             rate = success_rate(mid, sims)
@@ -271,7 +275,6 @@ def goal_required_contribution():
             "inputs": d
         })
 
-    # --- Deterministic closed-form (growing annuity) ---
     r_m   = monthly_rate_from_annual(mean_a - fee_a)
     i_m   = monthly_rate_from_annual(infl_a)
     esc_m = monthly_rate_from_annual(to_float(d.get("contribution_escalation_pct", 0.0)))
@@ -279,7 +282,7 @@ def goal_required_contribution():
     if months == 0:
         return jsonify({"required_monthly": 0.0, "method": "deterministic", "inputs": d})
 
-    target_real = target  # inputs already intended as "real"
+    target_real = target
     fv_without_pmt = initial * ((1 + r_m) ** months)
     need = max(target_real - fv_without_pmt, 0.0)
 
@@ -294,7 +297,7 @@ def goal_required_contribution():
         "inputs": d
     })
 
-# -------- Stripe (unchanged minimal) --------
+# -------- Stripe (minimal) --------
 @app.route("/api/billing/create-checkout-session", methods=["POST"])
 @require_auth
 def billing_create_checkout_session():

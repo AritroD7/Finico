@@ -7,7 +7,8 @@ import Home from "./pages/Home"
 import BudgetPlanner from "./pages/BudgetPlanner"
 import WealthForecast from "./pages/WealthForecast"
 import RiskModeling from "./pages/RiskModeling"
-import GoalPlanner from "./pages/GoalPlanner"
+import LoanCalculator from "./pages/LoanCalculator"
+import NetWorth from "./pages/NetWorth"
 import Help from "./pages/Help"
 import Account from "./pages/Account"
 import Login from "./pages/Login"
@@ -23,7 +24,8 @@ export default function App() {
           <Route path="/budget" element={<BudgetPlanner />} />
           <Route path="/forecast" element={<WealthForecast />} />
           <Route path="/risk" element={<RiskModeling />} />
-          <Route path="/goal" element={<GoalPlanner />} />
+          <Route path="/loans" element={<LoanCalculator />} />
+          <Route path="/networth" element={<NetWorth />} />
           <Route path="/help" element={<Help />} />
           <Route path="/account" element={<Account />} />
           <Route path="/login" element={<Login />} />

@@ -1,18 +1,108 @@
+/* FILE: client/src/index.css */
+
+/* Tailwind layers */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Our UI helpers */
-@import "./styles/ui.css";
+/* ---------- brand & background ---------- */
+:root {
+  --bg-grad-from: 248 250 252; /* slate-50 */
+  --bg-grad-mid: 235 245 255;  /* light sky */
 
+  --brand-from: 111 125 255;   /* #6F7DFF */
+  --brand-to:   96 165 250;    /* #60A5FA  */
 
-/* Plain CSS fallbacks (no @apply so browsers won't choke) */
-:root { color-scheme: light; }
+  --brand-b1: 129 140 248;     /* indigo-400  */
+  --brand-b2: 165 180 252;     /* indigo-300  */
+  --brand-b3: 147 197 253;     /* sky-300     */
+
+  --brand-accent: 56 189 248;  /* sky-400     */
+}
+
 html, body, #root { height: 100%; }
 body {
-  margin: 0;
-  color: #0f172a; /* slate-900 */
-  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
-  /* a soft bg so the page still looks decent without Tailwind utilities */
-  background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%);
+  background: linear-gradient(180deg, rgb(var(--bg-grad-from)) 0%, rgb(var(--bg-grad-mid)) 100%);
+}
+
+/* ---------- UI helpers ---------- */
+.input {
+  @apply h-10 rounded-xl border border-slate-200 px-3 text-slate-900 outline-none
+          focus:ring-2 focus:ring-blue-200 focus:border-blue-300 bg-white;
+}
+.btn {
+  @apply inline-flex items-center justify-center rounded-xl px-3.5 py-2 text-sm font-medium
+          bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 active:translate-y-[0.5px];
+}
+.btn-primary {
+  background-image: linear-gradient(90deg, rgb(var(--brand-from)), rgb(var(--brand-to)));
+  @apply text-white border-transparent rounded-xl px-3.5 py-2 hover:opacity-95 active:translate-y-[0.5px];
+}
+.btn-ghost { @apply bg-transparent border-transparent text-slate-700 hover:bg-slate-100; }
+
+/* ---------- animations / effects ---------- */
+@keyframes auroraShift { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
+@keyframes floatSlow { 0%{transform:translateY(0)} 50%{transform:translateY(-6px)} 100%{transform:translateY(0)} }
+@keyframes shimmer { from{background-position:200% 50%} to{background-position:-200% 50%} }
+
+/* NEW: ticker/marquee for the announcement bar */
+@keyframes ticker {
+  0%   { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+
+/* NEW: subtle glow on hover */
+@keyframes softGlow {
+  0% { box-shadow: 0 0 0 rgba(59,130,246,0); }
+  100% { box-shadow: 0 8px 24px rgba(59,130,246,.18); }
+}
+
+/* aurora backgrounds */
+.aurora-bg {
+  background: linear-gradient(
+      120deg,
+      rgba(var(--brand-from), .35),
+      rgba(var(--brand-to), .35),
+      rgba(var(--brand-accent), .35)
+  );
+  background-size: 200% 200%;
+  animation: auroraShift 12s ease-in-out infinite;
+  filter: blur(40px);
+}
+
+/* animated gradient border */
+.animated-border {
+  position: relative;
+  border: 2px solid transparent;
+  background:
+    linear-gradient(#fff,#fff) padding-box,
+    linear-gradient(120deg, rgb(var(--brand-b1)), rgb(var(--brand-b2)), rgb(var(--brand-b3))) border-box;
+  background-size: 200% 200%;
+  animation: auroraShift 10s ease infinite;
+  border-radius: 1rem;
+}
+
+/* card interior glow that follows pointer (optional) */
+.animated-card {
+  background:
+    radial-gradient(1200px circle at var(--mx,70%) -20%, rgba(var(--brand-from),.08), transparent 40%),
+    #fff;
+}
+
+/* hover lift */
+.hover-lift { transition: transform .25s ease, box-shadow .25s ease; }
+.hover-lift:hover { transform: translateY(-3px); box-shadow: 0 10px 25px rgba(15,23,42,.08); }
+
+/* extras */
+.blob { border-radius: 9999px; filter: blur(40px); opacity: .45; animation: floatSlow 8s ease-in-out infinite; }
+.shimmer-bar { background-image: linear-gradient(90deg, transparent, rgba(255,255,255,.65), transparent); background-size: 200% 100%; animation: shimmer 2.8s linear infinite; }
+.badge-shadow { box-shadow: 0 6px 20px rgba(111,125,255,.25); }
+
+/* gradient text / bg helpers */
+.brand-text {
+  background-image: linear-gradient(90deg, rgb(var(--brand-from)), rgb(var(--brand-to)));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.brand-bg {
+  background-image: linear-gradient(90deg, rgb(var(--brand-from)), rgb(var(--brand-to)));
 }

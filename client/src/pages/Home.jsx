@@ -1,468 +1,373 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import {
-  Calculator,
-  TrendingUp,
-  BrainCircuit,
-  Gauge,
-  CheckCircle2,
-  Lock,
-  Rocket,
-  FileDown,
-  Sparkles,
-} from "lucide-react";
+// FILE: client/src/pages/Home.jsx
+import { useEffect, useMemo, useState } from "react"
+import { Link, useNavigate } from "react-router-dom"
 
-// in App.jsx or wherever you define routes
-//import Login from "./pages/Login";
+/* -----------------------------------------------------------------------------
+  Currency helpers
+ ----------------------------------------------------------------------------- */
+const fmt = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 })
+const fmt0 = (n) => fmt.format(Math.max(0, Math.round(n)))
 
-import PageBackground from "../components/PageBackground";
-// ...your other imports
-
-
-/* -------------------------------------------------
-   Small utilities
--------------------------------------------------- */
-
-function CountUp({ end = 0, duration = 1100, className = "" }) {
-  const [value, setValue] = useState(0);
-  const started = useRef(false);
-  const ref = useRef(null);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-
-    const obs = new IntersectionObserver(
-      ([entry]) => {
-        if (!started.current && entry.isIntersecting) {
-          started.current = true;
-          const start = performance.now();
-          const tick = (t) => {
-            const p = Math.min(1, (t - start) / duration);
-            // easeOutCubic
-            const eased = 1 - Math.pow(1 - p, 3);
-            setValue(Math.floor(end * eased));
-            if (p < 1) requestAnimationFrame(tick);
-            else setValue(end);
-          };
-          requestAnimationFrame(tick);
-        }
-      },
-      { threshold: 0.25 }
-    );
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, [end, duration]);
-
-  return (
-    <span ref={ref} className={className}>
-      {value.toLocaleString()}
-    </span>
-  );
+/* -----------------------------------------------------------------------------
+  Inline icon set (no external deps)
+ ----------------------------------------------------------------------------- */
+function Icon({ name, className = "h-4 w-4", stroke = "currentColor" }) {
+  const p = { fill: "none", stroke, strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" }
+  switch (name) {
+    case "flash":   return (<svg viewBox="0 0 24 24" className={className} {...p}><path d="M13 2L3 14h7l-1 8L21 8h-7l-1-6z"/></svg>)
+    case "lock":    return (<svg viewBox="0 0 24 24" className={className} {...p}><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>)
+    case "export":  return (<svg viewBox="0 0 24 24" className={className} {...p}><path d="M12 3v12"/><path d="M7 8l5-5 5 5"/><rect x="4" y="15" width="16" height="6" rx="2"/></svg>)
+    case "calc":    return (<svg viewBox="0 0 24 24" className={className} {...p}><rect x="3" y="2" width="18" height="20" rx="2"/><path d="M7 6h10M7 10h4M7 14h4M7 18h10"/></svg>)
+    case "book":    return (<svg viewBox="0 0 24 24" className={className} {...p}><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M20 22H6.5A2.5 2.5 0 014 19.5V5.6A2.6 2.6 0 016.6 3H20v19z"/><path d="M8 3v14"/></svg>)
+    case "arrow":   return (<svg viewBox="0 0 24 24" className={className} {...p}><path d="M5 12h14M13 5l7 7-7 7"/></svg>)
+    default:        return null
+  }
 }
 
-function SoftCanvas() {
-  // Faint, clipped background; won’t create scrollbars
+/* -----------------------------------------------------------------------------
+  Micro charts (sparkline + donut)
+ ----------------------------------------------------------------------------- */
+function TinySparkline({ points = [], className = "h-20 w-full", stroke = "#60a5fa" }) {
+  // strict height to avoid layout collapse
+  const H = 80, W = 180, PAD = 8
+  if (!points.length) return <div className={className} />
+  const xs = points.map((_, i) => PAD + (i * (W - PAD * 2)) / (points.length - 1))
+  const min = Math.min(...points), max = Math.max(...points)
+  const ys = points.map(v => H - PAD - ((v - min) / (max - min || 1)) * (H - PAD * 2))
+  const d = xs.map((x, i) => `${i ? "L" : "M"}${x},${ys[i]}`).join(" ")
   return (
-    <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-[24px]">
-      <div className="absolute inset-[-2px] bg-[radial-gradient(60rem_40rem_at_0%_0%,rgba(139,92,246,0.10),transparent_55%),radial-gradient(60rem_40rem_at_100%_0%,rgba(236,72,153,0.08),transparent_50%)]" />
-      <div className="absolute inset-0 opacity-[0.22] [mask-image:linear-gradient(to_bottom,black,transparent_85%)]">
-        <svg width="100%" height="100%">
-          <defs>
-            <pattern id="griddots" width="36" height="36" patternUnits="userSpaceOnUse">
-              <circle cx="1.5" cy="1.5" r="1.25" className="fill-slate-300/40" />
-            </pattern>
-          </defs>
-          <rect width="100%" height="100%" fill="url(#griddots)" />
-        </svg>
+    <svg viewBox={`0 0 ${W} ${H}`} className={className}>
+      <path d={d} fill="none" stroke={stroke} strokeWidth="2.5" />
+      {xs.map((x, i) => <circle key={i} cx={x} cy={ys[i]} r="1.8" fill={stroke} />)}
+    </svg>
+  )
+}
+
+function SavingsMeter({ pct = 0 }) {
+  const clamp = Math.max(0, Math.min(100, pct))
+  const r = 28, C = 2 * Math.PI * r, dash = (clamp / 100) * C
+  return (
+    <div className="relative grid h-24 w-24 flex-none place-items-center">
+      <svg viewBox="0 0 72 72" className="h-24 w-24">
+        <circle cx="36" cy="36" r={r} stroke="#e2e8f0" strokeWidth="8" fill="none" />
+        <circle cx="36" cy="36" r={r} stroke="url(#saveG)" strokeWidth="8"
+                strokeDasharray={`${dash} ${C - dash}`} strokeLinecap="round"
+                fill="none" transform="rotate(-90 36 36)"/>
+        <defs>
+          <linearGradient id="saveG" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#60a5fa" />
+            <stop offset="100%" stopColor="#6366f1" />
+          </linearGradient>
+        </defs>
+      </svg>
+      <div className="absolute text-center">
+        <div className="text-xl font-bold text-slate-900">{Math.round(clamp)}%</div>
+        <div className="text-[11px] text-slate-500">savings rate</div>
       </div>
     </div>
-  );
+  )
 }
 
-/* -------------------------------------------------
-   Page
--------------------------------------------------- */
+/* -----------------------------------------------------------------------------
+  Sections
+ ----------------------------------------------------------------------------- */
+function Hero() {
+  return (
+    <section className="relative mx-auto max-w-6xl px-4 pt-6">
+      <div className="inline-flex items-center gap-2 rounded-full border border-blue-200/70 bg-blue-50/50 px-3 py-1 text-xs font-semibold text-blue-700">
+        <span className="h-2 w-2 rounded-full bg-blue-500" /> New • Polished Budget + local scenarios
+      </div>
+      <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl md:text-[44px]">
+        Plan, forecast, and <span className="brand-text">stress-test your money</span>.
+      </h1>
+      <p className="mt-2 max-w-2xl text-slate-600">
+        Budgeting, forecasting, risk analysis, and net-worth tracking — fast, clear, and privacy-first.
+      </p>
+      <div className="mt-4 flex flex-wrap gap-3">
+        <Link to="/budget" className="btn-primary">Plan my budget</Link>
+        <Link to="/forecast" className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 hover:bg-slate-50">
+          Run a forecast <Icon name="arrow" className="h-4 w-4" />
+        </Link>
+        <Link to="/help" className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 hover:bg-slate-50">
+          Learn finance <Icon name="book" className="h-4 w-4" />
+        </Link>
+      </div>
+    </section>
+  )
+}
 
-export default function Home() {
-  const navigate = useNavigate();
-  const [demo, setDemo] = useState({ income: 3200, rent: 1200, groceries: 300 });
+function QuickDemoCard() {
+  const nav = useNavigate()
+  const [income, setIncome] = useState(3200)
+  const [rent, setRent] = useState(1200)
+  const [groceries, setGroceries] = useState(300)
 
-  const savings = useMemo(() => {
-    const fixed = demo.rent;
-    const variable = demo.groceries;
-    const total = fixed + variable;
-    const remain = Math.max(0, demo.income - total);
-    const rate = demo.income > 0 ? Math.round((remain / demo.income) * 100) : 0;
-    return { fixed, variable, total, remain, rate };
-  }, [demo]);
+  const expenses = rent + groceries
+  const savings = Math.max(0, income - expenses)
+  const pct = Math.max(0, Math.min(100, (savings / Math.max(1, income)) * 100))
+
+  const spark = useMemo(() => {
+    const base = Math.max(120, Math.min(300, income / 12))
+    const arr = [base - 20, base + 8, base - 5, base + 18, base + 4, base + 24]
+    return arr.map((n) => n - (rent / 80) + (groceries / 40))
+  }, [income, rent, groceries])
 
   return (
-    <main className="min-h-[100svh] overflow-x-hidden bg-gradient-to-b from-white via-slate-50 to-slate-100/80">
-      {/* subtle header backing so the top isn’t flat white */}
-      <div className="sticky top-0 z-0 h-[52px] w-full bg-[linear-gradient(to_bottom,rgba(148,163,184,0.12),rgba(148,163,184,0)_65%)]" />
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
+      <div className="flex items-center justify-between">
+        <div className="text-[15px] font-semibold text-slate-900">Quick demo</div>
+        <button
+          className="text-xs text-blue-700 hover:underline"
+          onClick={() => { setIncome(3200); setRent(1200); setGroceries(300) }}
+        >
+          Try it ↓
+        </button>
+      </div>
 
-      {/* HERO */}
-      <section className="relative z-[1] mx-auto max-w-[110rem] px-6 pb-10 pt-5 lg:px-10">
-        <div className="relative mx-auto w-full rounded-[24px] border border-slate-200/70 bg-white/70 p-6 shadow-[0_18px_56px_-24px_rgba(2,6,23,0.12)] backdrop-blur supports-[backdrop-filter]:bg-white/55 md:p-7">
-          <SoftCanvas />
+      {/* Inputs */}
+      <div className="mt-3 grid gap-3 md:grid-cols-3">
+        <div className="md:col-span-3">
+          <label className="text-[12px] font-semibold text-slate-600">Monthly income</label>
+          <input
+            type="number"
+            value={income}
+            onChange={(e) => setIncome(Number(e.target.value || 0))}
+            className="mt-1 h-11 w-full rounded-xl border border-slate-200 px-3 text-slate-900 outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-200"
+          />
+          <p className="mt-1 text-[11px] text-slate-500">Tip: use whole numbers; you can fine-tune later.</p>
+        </div>
+        <div>
+          <label className="text-[12px] font-semibold text-slate-600">Rent</label>
+          <input
+            type="number"
+            value={rent}
+            onChange={(e) => setRent(Number(e.target.value || 0))}
+            className="mt-1 h-11 w-full rounded-xl border border-slate-200 px-3 text-slate-900 outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-200"
+          />
+        </div>
+        <div>
+          <label className="text-[12px] font-semibold text-slate-600">Groceries</label>
+          <input
+            type="number"
+            value={groceries}
+            onChange={(e) => setGroceries(Number(e.target.value || 0))}
+            className="mt-1 h-11 w-full rounded-xl border border-slate-200 px-3 text-slate-900 outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-200"
+          />
+        </div>
+      </div>
 
-          {/* fixed card column on lg so the card never grows */}
-          <div className="relative grid grid-cols-1 gap-8 lg:[grid-template-columns:minmax(0,1fr)_auto]">
-            {/* Left copy */}
-            <div className="flex flex-col gap-6">
-              <span className="inline-flex items-center gap-2 self-start rounded-full border border-white/70 bg-white/70 px-3 py-1 text-xs font-medium text-slate-700 shadow-sm backdrop-blur">
-                <span className="inline-block h-2 w-2 rounded-full bg-violet-500 shadow-[0_0_0_3px_rgba(124,58,237,0.18)]" />
-                New: polished Budget + local scenarios
-              </span>
-
-              <h1 className="text-balance text-[2.25rem] font-semibold leading-[1.08] tracking-tight text-slate-900 sm:text-[2.55rem] md:text-[2.8rem]">
-                Plan, forecast, and stress-test your money — elegantly.
-              </h1>
-
-              <p className="max-w-2xl text-pretty text-slate-600 md:text-[1.02rem]">
-                A clean toolkit for budgeting, wealth forecasting, risk analysis, and goal
-                planning. Fast, clear, and privacy-first.
-              </p>
-
-              {/* CTAs */}
-              <div className="flex flex-wrap gap-3">
-                <Link
-                  to="/budget"
-                  className="group relative overflow-hidden rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 px-5 py-[0.75rem] text-[0.95rem] font-medium text-white shadow-lg transition-transform hover:-translate-y-[1px] hover:shadow-xl"
-                >
-                  <span className="relative z-[1]">Plan my budget</span>
-                  <span className="absolute inset-0 -z-[1] bg-[radial-gradient(120px_60px_at_var(--x,50%)_50%,rgba(255,255,255,0.25),transparent)] opacity-0 transition-opacity group-hover:opacity-100" />
-                </Link>
-
-                <Link
-                  to="/forecast"
-                  className="rounded-xl border border-slate-200/80 bg-white px-5 py-[0.75rem] text-[0.95rem] font-medium text-slate-800 shadow-sm transition hover:border-slate-300 hover:shadow"
-                >
-                  Run a forecast
-                </Link>
-
-                <Link
-                  to="/help"
-                  className="rounded-xl border border-slate-200/80 bg-white px-5 py-[0.75rem] text-[0.95rem] font-medium text-slate-800 shadow-sm transition hover:border-slate-300 hover:shadow"
-                >
-                  How it works
-                </Link>
-              </div>
-
-              {/* quick facts */}
-              <div className="mt-1 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <Fact label="< 60s" caption="Time to first plan" />
-                <Fact label="Exportable" caption="Charts" />
-                <Fact label="Local-first" caption="Privacy" />
-                <Fact label="Free (MVP)" caption="Cost" />
-              </div>
-            </div>
-
-            {/* Right: compact demo card */}
-            <div className="relative">
-              <div className="w-[360px] sm:w-[380px] md:w-[400px] rounded-2xl border border-slate-200/70 bg-white/95 p-4 shadow-[0_14px_36px_-18px_rgba(2,6,23,0.14)] md:p-5">
-                <h3 className="mb-2 flex items-center gap-2 text-[0.95rem] font-semibold text-slate-800">
-                  <Gauge className="h-[16px] w-[16px] text-violet-600" />
-                  Quick demo
-                </h3>
-
-                <div className="grid grid-cols-1 gap-3">
-                  <LabeledNumber
-                    label="Monthly income"
-                    value={demo.income}
-                    onChange={(v) => setDemo((s) => ({ ...s, income: v }))}
-                    small
-                  />
-                  <div className="grid grid-cols-2 gap-3">
-                    <LabeledNumber
-                      label="Rent"
-                      value={demo.rent}
-                      onChange={(v) => setDemo((s) => ({ ...s, rent: v }))}
-                      small
-                    />
-                    <LabeledNumber
-                      label="Groceries"
-                      value={demo.groceries}
-                      onChange={(v) => setDemo((s) => ({ ...s, groceries: v }))}
-                      small
-                    />
-                  </div>
-
-                  <div className="mt-1">
-                    <div className="mb-[2px] flex items-center justify-between text-[12px] text-slate-500">
-                      <span>Savings</span>
-                      <span className="tabular-nums">${savings.remain.toLocaleString()}</span>
-                    </div>
-                    <div className="h-[7px] w-full overflow-hidden rounded-full bg-slate-200/70">
-                      <div
-                        className="h-[7px] rounded-full bg-gradient-to-r from-violet-600 to-fuchsia-600 transition-[width]"
-                        style={{ width: `${savings.rate}%` }}
-                      />
-                    </div>
-                    <div className="mt-[2px] text-right text-[12px] text-slate-500">
-                      Rate: {savings.rate}% of income
-                    </div>
-                  </div>
-
-                  <div className="mt-2 flex gap-3">
-                    <button
-                      onClick={() => navigate("/budget")}
-                      className="flex-1 rounded-xl bg-violet-600 px-3.5 py-2 text-[0.9rem] font-medium text-white shadow hover:bg-violet-500"
-                    >
-                      Open Budget
-                    </button>
-                    <button
-                      onClick={() => navigate("/forecast")}
-                      className="flex-1 rounded-xl border border-slate-200/80 bg-white px-3.5 py-2 text-[0.9rem] font-medium text-slate-800 shadow-sm hover:border-slate-300"
-                    >
-                      Forecast
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* soft pad shadow */}
-              <div className="pointer-events-none absolute inset-x-3 -bottom-5 h-8 rounded-2xl bg-gradient-to-b from-slate-300/40 to-transparent blur-xl" />
-            </div>
+      {/* Outputs (robust layout) */}
+      <div className="mt-4 flex flex-col gap-4 md:flex-row">
+        {/* Donut + numbers (never shrink) */}
+        <div className="flex w-full flex-none items-center gap-4 md:w-auto">
+          <SavingsMeter pct={pct} />
+          <div className="min-w-0">
+            <div className="text-sm font-semibold text-slate-900">Savings</div>
+            <div className="text-xl font-bold text-slate-900">{fmt0(savings)}</div>
+            <div className="text-[12px] text-slate-600">of {fmt0(income)} income</div>
           </div>
         </div>
 
-        {/* Stats with animation */}
-        <div className="mx-auto mt-7 grid max-w-6xl grid-cols-2 gap-4 sm:grid-cols-4">
-          <Stat value={12400} label="Budgets created" />
-          <Stat value={8600} label="Forecasts run" />
-          <Stat value={4900} label="Risk sims" />
-          <Stat value={98} suffix="%" label="User satisfaction" />
-        </div>
-      </section>
-
-      {/* HOW IT WORKS (improved layout kept) */}
-      <section id="how" className="relative z-[1] mx-auto max-w-[110rem] scroll-mt-16 px-6 pb-8 pt-3 lg:px-10">
-        <h2 className="mb-1 text-center text-[1.55rem] font-semibold text-slate-900 sm:text-3xl">
-          How it works
-        </h2>
-        <p className="mb-8 text-center text-slate-600">Three steps. Adjust anytime.</p>
-
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <Step
-            idx={1}
-            icon={Calculator}
-            title="Start a budget"
-            text="Enter income and a few expenses. See savings and fixed/variable split instantly."
-          />
-          <Step
-            idx={2}
-            icon={TrendingUp}
-            title="Forecast"
-            text="Project balances (nominal vs real); export snapshots for tracking."
-          />
-          <Step
-            idx={3}
-            icon={BrainCircuit}
-            title="Stress-test"
-            text="Run risk sims (P10/P50/P90) to gauge plan robustness."
-          />
-        </div>
-
-        <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
-          <Quote text="The fastest budgeting flow I’ve used — exports are clean." author="Maya A." />
-          <Quote text="Forecast & risk in one place. Simple, clear, local-first." author="Daniel P." />
-          <Quote text="Premium feel without clutter. Exactly what I needed." author="Ibrahim K." />
-        </div>
-
-        <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
-          <Chip icon={Lock} title="Local-first" text="Your data stays on your device by default. Export anytime." />
-          <Chip icon={Rocket} title="Fast & clear" text="Immediate results and polished charts for clarity." />
-          <Chip icon={FileDown} title="Exportable" text="Download snapshots to keep history or share." />
-        </div>
-
-        <div className="mt-8 rounded-2xl border border-slate-200/70 bg-white/70 p-6 text-center shadow-sm backdrop-blur md:p-8">
-          <h3 className="text-xl font-semibold text-slate-900 sm:text-2xl">Start planning now</h3>
-          <p className="mt-1 text-slate-600">Build a budget in under a minute. Tweak anytime.</p>
-          <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
-            <Link
-              to="/budget"
-              className="rounded-xl bg-violet-600 px-5 py-3 font-medium text-white shadow hover:bg-violet-500"
-            >
-              Open Budget
-            </Link>
-            <Link
-              to="/forecast"
-              className="rounded-xl border border-slate-200/80 bg-white px-5 py-3 font-medium text-slate-800 shadow-sm hover:border-slate-300"
-            >
-              Forecast
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* FOOTER (polished & spaced) */}
-      <footer className="relative z-[1] mt-10 border-t border-slate-200/70 bg-white/75 backdrop-blur">
-        <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-violet-500/40 to-transparent" />
-        <div className="mx-auto grid max-w-[110rem] grid-cols-1 gap-8 px-6 py-10 md:grid-cols-3 lg:px-10">
-          <div className="space-y-3">
-            <div className="inline-flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-violet-600" />
-              <span className="text-lg font-semibold text-slate-900">Finico</span>
+        {/* Sparkline block (strict height + full width) */}
+        <div className="w-full min-w-0">
+          <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-3">
+            <div className="h-20 w-full overflow-hidden">
+              <TinySparkline points={spark} stroke="#60a5fa" />
             </div>
-            <p className="max-w-sm text-slate-600">
-              Educational math models — not investment advice. Your data stays on your device unless you save to cloud later.
-            </p>
           </div>
-          <div className="grid grid-cols-2 gap-6 md:col-span-2 md:grid-cols-4">
-            <FooterCol
-              title="Product"
-              links={[
-                { to: "/budget", label: "Budget" },
-                { to: "/forecast", label: "Forecast" },
-                { to: "/risk", label: "Risk" },
-                { to: "/goal", label: "Goal" },
-              ]}
-            />
-            <FooterCol
-              title="Learn"
-              links={[
-                { to: "/help#budget", label: "Budget guide" },
-                { to: "/help#forecast", label: "Forecast guide" },
-                { to: "/help#risk", label: "Risk guide" },
-              ]}
-            />
-            <FooterCol
-              title="Company"
-              links={[
-                { to: "/help#about", label: "About" },
-                { to: "/help#faq", label: "FAQ" },
-              ]}
-            />
+        </div>
+      </div>
+
+      {/* CTAs */}
+      <div className="mt-4 flex flex-wrap gap-2">
+        <button className="btn-primary" onClick={() => nav("/budget")}>Open Budget</button>
+        <button
+          className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 hover:bg-slate-50"
+          onClick={() => nav("/forecast")}
+        >
+          Forecast
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function WhyFinicoCard() {
+  const items = [
+    { icon: "flash",  title: "Instant results", desc: "Polished charts with clear, editable inputs." },
+    { icon: "calc",   title: "Solid math",      desc: "Compounding, real vs nominal, Monte-Carlo." },
+    { icon: "lock",   title: "Local-first",     desc: "Your data stays on your device by default." },
+    { icon: "export", title: "Share & export",  desc: "Snapshots you can keep or send to others." },
+  ]
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
+      <div className="text-[15px] font-semibold text-slate-900">Why Finico?</div>
+      <ul className="mt-3 space-y-3">
+        {items.map((it) => (
+          <li key={it.title} className="flex items-start gap-3">
+            <div className="grid h-8 w-8 place-items-center rounded-lg bg-blue-50">
+              <Icon name={it.icon} className="h-4 w-4 text-blue-600" />
+            </div>
             <div>
-              <h4 className="mb-3 text-sm font-semibold text-slate-900">Contact</h4>
-              <p className="text-slate-600">hello@finico.app</p>
+              <div className="text-sm font-semibold text-slate-900">{it.title}</div>
+              <div className="text-sm text-slate-600">{it.desc}</div>
             </div>
-          </div>
-        </div>
-        <div className="border-t border-slate-200/70">
-          <div className="mx-auto flex max-w-[110rem] items-center justify-between gap-4 px-6 py-4 text-sm text-slate-500 lg:px-10">
-            <span>© {new Date().getFullYear()} Finico. All rights reserved.</span>
-            <div className="flex gap-4">
-              <Link to="/help#terms" className="hover:text-slate-700">
-                Terms
-              </Link>
-              <Link to="/help#privacy" className="hover:text-slate-700">
-                Privacy
-              </Link>
-            </div>
-          </div>
-        </div>
-      </footer>
-    </main>
-  );
-
-  return (
-    <main className="relative">
-      <PageBackground />   {/* 👈 sits behind everything on Home */}
-      {/* ⬇️ keep your existing Home content below untouched */}
-      {/* ...your full hero, demo card, metrics, how-it-works, footer, etc. */}
-    </main>
-  );
-}
-
-/* -------------------------------------------------
-   Reusable bits
--------------------------------------------------- */
-
-function LabeledNumber({ label, value, onChange, small = false }) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-[12px] font-medium text-slate-500">{label}</span>
-      <input
-        type="number"
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value || 0))}
-        className={[
-          "w-full rounded-xl border border-slate-200/80 bg-white text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400",
-          small ? "px-3 py-[7px] text-[0.95rem]" : "px-3 py-2.5 text-[0.98rem]",
-          "hover:border-slate-300 focus:border-violet-500",
-        ].join(" ")}
-      />
-    </label>
-  );
-}
-
-function Fact({ label, caption }) {
-  return (
-    <div className="rounded-xl border border-slate-200/70 bg-white/85 p-3 shadow-sm backdrop-blur">
-      <div className="text-[15px] font-semibold text-slate-900">{label}</div>
-      <div className="text-xs text-slate-500">{caption}</div>
-    </div>
-  );
-}
-
-function Stat({ value, label, suffix = "+" }) {
-  return (
-    <div className="rounded-2xl border border-slate-200/70 bg-white/85 p-5 text-center shadow-sm backdrop-blur">
-      <div className="text-2xl font-bold tracking-tight text-slate-900">
-        <CountUp end={value} />
-        {suffix}
-      </div>
-      <div className="mt-1 text-sm text-slate-600">{label}</div>
-    </div>
-  );
-}
-
-function Step({ idx, icon: Icon, title, text }) {
-  return (
-    <div className="rounded-2xl border border-slate-200/70 bg-white/85 p-5 shadow-sm backdrop-blur">
-      <div className="mb-3 flex items-center gap-3">
-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-violet-600 to-fuchsia-600 text-white shadow">
-          {idx}
-        </div>
-        <div className="flex items-center gap-2">
-          <Icon className="h-[18px] w-[18px] text-violet-600" />
-          <h3 className="text-[15.5px] font-semibold text-slate-900">{title}</h3>
-        </div>
-      </div>
-      <p className="text-sm text-slate-600">{text}</p>
-    </div>
-  );
-}
-
-function Quote({ text, author }) {
-  return (
-    <div className="rounded-2xl border border-slate-200/70 bg-white/85 p-5 shadow-sm backdrop-blur">
-      <p className="text-[15px] text-slate-700">“{text}”</p>
-      <div className="mt-3 flex items-center gap-2 text-sm font-medium text-slate-900">
-        <CheckCircle2 className="h-4 w-4 text-emerald-500" />— {author}
-      </div>
-    </div>
-  );
-}
-
-function Chip({ icon: Icon, title, text }) {
-  return (
-    <div className="rounded-2xl border border-slate-200/70 bg-white/85 p-5 shadow-sm backdrop-blur">
-      <div className="mb-2 flex items-center gap-2">
-        <Icon className="h-[18px] w-[18px] text-violet-600" />
-        <h4 className="text-sm font-semibold text-slate-900">{title}</h4>
-      </div>
-      <p className="text-sm text-slate-600">{text}</p>
-    </div>
-  );
-}
-
-function FooterCol({ title, links }) {
-  return (
-    <div>
-      <h4 className="mb-3 text-sm font-semibold text-slate-900">{title}</h4>
-      <ul className="space-y-2 text-sm">
-        {links.map((l) => (
-          <li key={l.label}>
-            <Link to={l.to} className="text-slate-600 hover:text-slate-800">
-              {l.label}
-            </Link>
           </li>
         ))}
       </ul>
+
+      <div className="mt-4 rounded-xl border border-slate-200 bg-gradient-to-r from-sky-50 to-indigo-50 p-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-[12px] font-semibold text-slate-700">Education</div>
+            <div className="text-sm text-slate-600">Bite-sized guides for budgeting & risk.</div>
+          </div>
+          <Link to="/help" className="inline-flex items-center gap-1 text-sm font-semibold text-blue-700 hover:underline">
+            Read guides <Icon name="arrow" className="h-4 w-4" />
+          </Link>
+        </div>
+      </div>
     </div>
-  );
+  )
+}
+
+function AtAGlanceCard() {
+  const stats = [
+    { label: "BUDGETS", value: "$12,400" },
+    { label: "FORECASTS", value: "$8,600" },
+    { label: "RISK SIMS", value: "$4,900" },
+    { label: "SATISFACTION", value: "98%" },
+  ]
+  const activity = [7, 10, 9, 12, 8, 14, 16, 13]
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
+      <div className="text-[15px] font-semibold text-slate-900">At a glance</div>
+      <div className="mt-3 grid grid-cols-2 gap-3">
+        {stats.map((s) => (
+          <div key={s.label} className="rounded-xl border border-slate-200 p-3">
+            <div className="text-[11px] font-semibold tracking-wide text-slate-500">{s.label}</div>
+            <div className="mt-1 text-lg font-bold text-slate-900">{s.value}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50/50 p-3">
+        <div className="flex items-center justify-between">
+          <div className="text-sm font-semibold text-slate-900">Recent activity</div>
+          <Link to="/help" className="text-xs text-blue-700 hover:underline">View details</Link>
+        </div>
+        <div className="mt-2 h-20 w-full overflow-hidden">
+          <TinySparkline points={activity} stroke="#6366f1" />
+        </div>
+      </div>
+
+      <p className="mt-2 text-[11px] text-slate-500">Numbers are illustrative; real usage updates soon.</p>
+    </div>
+  )
+}
+
+function InsightsSection() {
+  const cards = [
+    { tag: "Guide • 6 min", title: "The 50/30/20 rule — still useful in 2025?", blurb: "A quick primer with real-world tweaks for high-inflation periods.", href: "/help" },
+    { tag: "Guide • 4 min", title: "Nominal vs real returns (and why it matters).", blurb: "See how inflation changes your wealth picture, with a tiny example.", href: "/help" },
+    { tag: "Guide • 5 min", title: "Monte-Carlo: plan for best / worst cases.", blurb: "Stress-test your plan so surprises don’t derail your goals.", href: "/risk" },
+  ]
+  return (
+    <section className="mx-auto mt-10 max-w-6xl px-4">
+      <div className="text-xl font-bold text-slate-900">Financial insights</div>
+      <p className="mt-1 text-slate-600">Bite-sized guides to build confidence with money.</p>
+
+      <div className="mt-4 grid gap-4 md:grid-cols-3">
+        {cards.map((c) => (
+          <article key={c.title} className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="pointer-events-none absolute -inset-12 -z-10 aurora-bg opacity-30 transition-opacity group-hover:opacity-50" />
+            <div className="text-[11px] font-semibold text-blue-700">{c.tag}</div>
+            <h3 className="mt-1 text-[15px] font-semibold text-slate-900">{c.title}</h3>
+            <p className="mt-1 text-sm text-slate-600">{c.blurb}</p>
+            <Link to={c.href} className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-blue-700 hover:underline">
+              Read <Icon name="arrow" className="h-4 w-4" />
+            </Link>
+          </article>
+        ))}
+      </div>
+
+      <div className="mt-4">
+        <Link to="/help" className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 hover:bg-slate-50">
+          View all insights <Icon name="arrow" className="h-4 w-4" />
+        </Link>
+      </div>
+    </section>
+  )
+}
+
+/* -----------------------------------------------------------------------------
+  Floating tip (gentle + frequency-limited)
+ ----------------------------------------------------------------------------- */
+const TIPS = [
+  { id: "t1", icon: "💡", title: "Pro tip", text: "Use presets to see savings change instantly.", cta: { label: "Presets", href: "/budget#presets" } },
+  { id: "t2", icon: "📚", title: "Learn finance", text: "Read our 50/30/20 guide in 6 minutes.", cta: { label: "Open guide", href: "/help" } },
+  { id: "t3", icon: "🧮", title: "Risk 101", text: "Monte-Carlo shows best/worst cases.", cta: { label: "Run risk", href: "/risk" } },
+]
+function FloatingTips() {
+  const SHOW_MS = 7000, GAP_MS = 20000, KEY = "finico.tip.nextAt"
+  const [tip, setTip] = useState(null)
+
+  useEffect(() => {
+    let tShow, tHide
+    const now = Date.now(), nextAt = Number(localStorage.getItem(KEY) || 0)
+    const startDelay = Math.max(0, nextAt - now) || 1500
+    const show = () => {
+      setTip(TIPS[Math.floor(Math.random() * TIPS.length)])
+      tHide = setTimeout(() => {
+        setTip(null)
+        localStorage.setItem(KEY, String(Date.now() + GAP_MS))
+        tShow = setTimeout(show, GAP_MS)
+      }, SHOW_MS)
+    }
+    tShow = setTimeout(show, startDelay)
+    return () => { clearTimeout(tShow); clearTimeout(tHide) }
+  }, [])
+
+  if (!tip) return null
+  return (
+    <div className="pointer-events-none fixed bottom-6 right-6 z-[45] w-[320px]">
+      <div className="pointer-events-auto rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-xl">
+        <div className="flex items-start gap-2">
+          <div className="grid h-7 w-7 place-items-center rounded-md bg-blue-50 text-lg">{tip.icon}</div>
+          <div className="flex-1">
+            <div className="text-sm font-semibold text-slate-900">{tip.title}</div>
+            <div className="text-sm text-slate-600">{tip.text}</div>
+            {tip.cta && <Link to={tip.cta.href} className="mt-1 inline-flex text-[13px] text-blue-700 hover:underline">{tip.cta.label} →</Link>}
+          </div>
+          <button onClick={() => { setTip(null); localStorage.setItem(KEY, String(Date.now() + GAP_MS)) }}
+                  className="rounded-md p-1 text-slate-500 hover:bg-slate-100">
+            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M6 6l12 12M6 18L18 6" strokeLinecap="round"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* -----------------------------------------------------------------------------
+  Page
+ ----------------------------------------------------------------------------- */
+export default function Home() {
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+      <Hero />
+      <section className="mx-auto mt-5 max-w-6xl px-4">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <QuickDemoCard />
+          <WhyFinicoCard />
+          <AtAGlanceCard />
+        </div>
+      </section>
+      <InsightsSection />
+      <FloatingTips />
+    </div>
+  )
 }
