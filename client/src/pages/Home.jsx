@@ -1,6 +1,8 @@
 // FILE: client/src/pages/Home.jsx
 import { useEffect, useMemo, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
+import InsightsSection from "../components/InsightsSection"
+import { Icon } from "../components/Icons"
 
 /* -----------------------------------------------------------------------------
   Currency helpers
@@ -9,20 +11,8 @@ const fmt = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD",
 const fmt0 = (n) => fmt.format(Math.max(0, Math.round(n)))
 
 /* -----------------------------------------------------------------------------
-  Inline icon set (no external deps)
+  Micro charts (using Icons component now imported from separate file)
  ----------------------------------------------------------------------------- */
-function Icon({ name, className = "h-4 w-4", stroke = "currentColor" }) {
-  const p = { fill: "none", stroke, strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" }
-  switch (name) {
-    case "flash":   return (<svg viewBox="0 0 24 24" className={className} {...p}><path d="M13 2L3 14h7l-1 8L21 8h-7l-1-6z"/></svg>)
-    case "lock":    return (<svg viewBox="0 0 24 24" className={className} {...p}><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>)
-    case "export":  return (<svg viewBox="0 0 24 24" className={className} {...p}><path d="M12 3v12"/><path d="M7 8l5-5 5 5"/><rect x="4" y="15" width="16" height="6" rx="2"/></svg>)
-    case "calc":    return (<svg viewBox="0 0 24 24" className={className} {...p}><rect x="3" y="2" width="18" height="20" rx="2"/><path d="M7 6h10M7 10h4M7 14h4M7 18h10"/></svg>)
-    case "book":    return (<svg viewBox="0 0 24 24" className={className} {...p}><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M20 22H6.5A2.5 2.5 0 014 19.5V5.6A2.6 2.6 0 016.6 3H20v19z"/><path d="M8 3v14"/></svg>)
-    case "arrow":   return (<svg viewBox="0 0 24 24" className={className} {...p}><path d="M5 12h14M13 5l7 7-7 7"/></svg>)
-    default:        return null
-  }
-}
 
 /* -----------------------------------------------------------------------------
   Micro charts (sparkline + donut)
@@ -73,23 +63,65 @@ function SavingsMeter({ pct = 0 }) {
  ----------------------------------------------------------------------------- */
 function Hero() {
   return (
-    <section className="relative mx-auto max-w-6xl px-4 pt-6">
-      <div className="inline-flex items-center gap-2 rounded-full border border-blue-200/70 bg-blue-50/50 px-3 py-1 text-xs font-semibold text-blue-700">
-        <span className="h-2 w-2 rounded-full bg-blue-500" /> New • Polished Budget + local scenarios
+    <section className="relative mx-auto max-w-6xl px-4 pt-8 pb-6">
+      {/* Decorative elements */}
+      <div className="absolute -top-20 -right-20 h-64 w-64 rounded-full bg-blue-200/20 blur-3xl"></div>
+      <div className="absolute top-1/2 -left-32 h-48 w-48 rounded-full bg-indigo-200/25 blur-3xl"></div>
+      
+      {/* Feature announcement badge */}
+      <div className="inline-flex items-center gap-2 rounded-full border border-blue-200/70 bg-gradient-to-r from-blue-50 to-indigo-50 px-3 py-1.5 text-xs font-semibold text-blue-700 shadow-sm">
+        <span className="flex h-2 w-2 rounded-full bg-blue-500">
+          <span className="animate-ping absolute h-2 w-2 rounded-full bg-blue-400 opacity-75"></span>
+        </span>
+        New • Polished Budget + local scenarios
       </div>
-      <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl md:text-[44px]">
-        Plan, forecast, and <span className="brand-text">stress-test your money</span>.
+      
+      {/* Main heading with gradient highlight */}
+      <h1 className="mt-5 text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl md:text-[56px] leading-tight">
+        Plan, forecast, and{" "}
+        <span className="relative inline-block">
+          <span className="relative z-10">stress-test your money</span>
+          <span className="absolute -bottom-1 left-0 right-0 h-3 bg-gradient-to-r from-blue-300/50 to-indigo-300/50 -z-10 transform skew-x-12"></span>
+        </span>
       </h1>
-      <p className="mt-2 max-w-2xl text-slate-600">
-        Budgeting, forecasting, risk analysis, and net-worth tracking — fast, clear, and privacy-first.
+      
+      {/* Subheading with animated highlight */}
+      <p className="mt-4 max-w-2xl text-lg text-slate-600">
+        Budgeting, forecasting, risk analysis, and net-worth tracking — 
+        <span className="relative inline-block mx-1 font-medium">
+          <span className="relative text-slate-800">fast, clear, and privacy-first.</span>
+          <span className="absolute -bottom-0.5 left-0 right-0 h-2 bg-gradient-to-r from-blue-200/60 to-indigo-200/60 -z-10"></span>
+        </span>
       </p>
-      <div className="mt-4 flex flex-wrap gap-3">
-        <Link to="/budget" className="btn-primary">Plan my budget</Link>
-        <Link to="/forecast" className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 hover:bg-slate-50">
-          Run a forecast <Icon name="arrow" className="h-4 w-4" />
+      
+      {/* CTA buttons with enhanced styling */}
+      <div className="mt-8 flex flex-wrap gap-4">
+        <Link to="/budget" className="relative overflow-hidden rounded-xl px-6 py-3.5 text-base font-semibold text-white shadow-lg transition-all duration-300 hover:shadow-[0_8px_20px_rgba(59,130,246,0.35)] group">
+          <span className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600"></span>
+          <span className="absolute inset-0 bg-gradient-to-r from-blue-500 to-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+          <span className="absolute right-0 bottom-0 h-16 w-16 -rotate-45 translate-x-8 translate-y-8 bg-white/10 transform transition-transform duration-500 ease-out group-hover:translate-y-6"></span>
+          <span className="relative flex items-center gap-2">
+            Plan my budget
+            <svg className="h-5 w-5 transition-transform duration-300 group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </span>
         </Link>
-        <Link to="/help" className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 hover:bg-slate-50">
-          Learn finance <Icon name="book" className="h-4 w-4" />
+        
+        <Link to="/forecast" className="relative overflow-hidden rounded-xl border border-slate-200 bg-white/90 backdrop-blur-sm px-5 py-3.5 text-base font-semibold text-slate-800 shadow-sm hover:shadow-md transition-all duration-300 group">
+          <span className="absolute inset-0 bg-gradient-to-r from-slate-50 to-blue-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+          <span className="relative flex items-center gap-2">
+            Run a forecast 
+            <Icon name="arrow" className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+          </span>
+        </Link>
+        
+        <Link to="/help" className="relative overflow-hidden rounded-xl border border-slate-200 bg-white/90 backdrop-blur-sm px-5 py-3.5 text-base font-semibold text-slate-800 shadow-sm hover:shadow-md transition-all duration-300 group">
+          <span className="absolute inset-0 bg-gradient-to-r from-slate-50 to-blue-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+          <span className="relative flex items-center gap-2">
+            Learn finance
+            <Icon name="book" className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+          </span>
         </Link>
       </div>
     </section>
@@ -113,79 +145,163 @@ function QuickDemoCard() {
   }, [income, rent, groceries])
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
-      <div className="flex items-center justify-between">
-        <div className="text-[15px] font-semibold text-slate-900">Quick demo</div>
+    <div className="rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-lg transition-all duration-300 hover:shadow-xl backdrop-blur-sm relative overflow-hidden group">
+      {/* Interactive gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 via-white to-indigo-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+      
+      {/* Card header with animation */}
+      <div className="flex items-center justify-between relative">
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-100 to-indigo-100">
+            <svg className="h-4 w-4 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 6V3l4 4-4 4V8c-3.3 0-6 2.7-6 6 0 1 .3 2 .8 2.8l-1.4 1.4C4.5 16.8 4 15.5 4 14c0-4.4 3.6-8 8-8zm8 8c0 1.5-.5 2.8-1.4 4L17.2 18c.5-.8.8-1.8.8-2.8 0-3.3-2.7-6-6-6v3l-4-4 4-4v3c4.4 0 8 3.6 8 8z" />
+            </svg>
+          </div>
+          <div className="text-[16px] font-semibold text-slate-900">Interactive Demo</div>
+        </div>
         <button
-          className="text-xs text-blue-700 hover:underline"
+          className="flex items-center gap-1 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 shadow-sm hover:bg-blue-100 transition-colors duration-200"
           onClick={() => { setIncome(3200); setRent(1200); setGroceries(300) }}
         >
-          Try it ↓
+          Reset values
+          <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M12 6V3l-4 4 4 4V8c3.3 0 6 2.7 6 6 0 1-.3 2-.8 2.8l1.4 1.4c.9-1.2 1.4-2.5 1.4-4 0-4.4-3.6-8-8-8z" />
+          </svg>
         </button>
       </div>
 
-      {/* Inputs */}
-      <div className="mt-3 grid gap-3 md:grid-cols-3">
+      {/* Enhanced inputs with icons */}
+      <div className="mt-4 grid gap-4 md:grid-cols-3">
         <div className="md:col-span-3">
-          <label className="text-[12px] font-semibold text-slate-600">Monthly income</label>
-          <input
-            type="number"
-            value={income}
-            onChange={(e) => setIncome(Number(e.target.value || 0))}
-            className="mt-1 h-11 w-full rounded-xl border border-slate-200 px-3 text-slate-900 outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-200"
-          />
-          <p className="mt-1 text-[11px] text-slate-500">Tip: use whole numbers; you can fine-tune later.</p>
+          <label className="mb-1.5 flex items-center gap-1.5 text-[13px] font-semibold text-slate-700">
+            <svg className="h-4 w-4 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            Monthly income
+          </label>
+          <div className="relative">
+            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500">$</span>
+            <input
+              type="number"
+              value={income}
+              onChange={(e) => setIncome(Number(e.target.value || 0))}
+              className="h-12 w-full rounded-xl border border-slate-200 bg-white/80 px-8 text-slate-900 outline-none transition-all duration-200 
+                         focus:border-blue-400 focus:bg-white focus:ring-2 focus:ring-blue-100/50 shadow-sm"
+            />
+            <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs text-slate-400">USD</span>
+          </div>
+          <p className="mt-1.5 flex items-center gap-1.5 text-[11px] text-slate-500">
+            <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 8v4M12 16h.01" />
+            </svg>
+            Use whole numbers; you can fine-tune later.
+          </p>
         </div>
         <div>
-          <label className="text-[12px] font-semibold text-slate-600">Rent</label>
-          <input
-            type="number"
-            value={rent}
-            onChange={(e) => setRent(Number(e.target.value || 0))}
-            className="mt-1 h-11 w-full rounded-xl border border-slate-200 px-3 text-slate-900 outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-200"
-          />
+          <label className="mb-1.5 flex items-center gap-1.5 text-[13px] font-semibold text-slate-700">
+            <svg className="h-4 w-4 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+              <path d="M9 22V12h6v10" />
+            </svg>
+            Rent
+          </label>
+          <div className="relative">
+            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500">$</span>
+            <input
+              type="number"
+              value={rent}
+              onChange={(e) => setRent(Number(e.target.value || 0))}
+              className="h-12 w-full rounded-xl border border-slate-200 bg-white/80 px-8 text-slate-900 outline-none transition-all duration-200 
+                         focus:border-blue-400 focus:bg-white focus:ring-2 focus:ring-blue-100/50 shadow-sm"
+            />
+          </div>
         </div>
         <div>
-          <label className="text-[12px] font-semibold text-slate-600">Groceries</label>
-          <input
-            type="number"
-            value={groceries}
-            onChange={(e) => setGroceries(Number(e.target.value || 0))}
-            className="mt-1 h-11 w-full rounded-xl border border-slate-200 px-3 text-slate-900 outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-200"
-          />
+          <label className="mb-1.5 flex items-center gap-1.5 text-[13px] font-semibold text-slate-700">
+            <svg className="h-4 w-4 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M3 3h18v18H3zM16 10a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path d="M7 21l2.6-5.2a5 5 0 016.8 0L19 21" />
+            </svg>
+            Groceries
+          </label>
+          <div className="relative">
+            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500">$</span>
+            <input
+              type="number"
+              value={groceries}
+              onChange={(e) => setGroceries(Number(e.target.value || 0))}
+              className="h-12 w-full rounded-xl border border-slate-200 bg-white/80 px-8 text-slate-900 outline-none transition-all duration-200 
+                         focus:border-blue-400 focus:bg-white focus:ring-2 focus:ring-blue-100/50 shadow-sm"
+            />
+          </div>
         </div>
       </div>
 
-      {/* Outputs (robust layout) */}
-      <div className="mt-4 flex flex-col gap-4 md:flex-row">
-        {/* Donut + numbers (never shrink) */}
+      {/* Enhanced output section */}
+      <div className="mt-6 flex flex-col gap-5 md:flex-row">
+        {/* Savings meter with enhanced styling */}
         <div className="flex w-full flex-none items-center gap-4 md:w-auto">
-          <SavingsMeter pct={pct} />
+          <div className="relative">
+            <SavingsMeter pct={pct} />
+            <div className="absolute inset-0 rounded-full bg-gradient-to-b from-blue-100/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-md"></div>
+          </div>
           <div className="min-w-0">
-            <div className="text-sm font-semibold text-slate-900">Savings</div>
-            <div className="text-xl font-bold text-slate-900">{fmt0(savings)}</div>
-            <div className="text-[12px] text-slate-600">of {fmt0(income)} income</div>
+            <div className="text-sm font-semibold text-slate-700">Monthly Savings</div>
+            <div className="text-2xl font-bold text-slate-900 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+              {fmt0(savings)}
+            </div>
+            <div className="text-[13px] text-slate-600 flex items-center gap-1.5">
+              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M13 17h3a2 2 0 002-2V9a2 2 0 00-2-2h-3m-6 10H7a2 2 0 01-2-2V9a2 2 0 012-2h3m0 4h4" />
+              </svg>
+              from {fmt0(income)} income
+            </div>
           </div>
         </div>
 
-        {/* Sparkline block (strict height + full width) */}
+        {/* Enhanced sparkline with card styling */}
         <div className="w-full min-w-0">
-          <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-3">
+          <div className="rounded-xl border border-slate-200/80 bg-gradient-to-br from-white to-slate-50/80 p-3 shadow-sm transition-all duration-300 group-hover:shadow-md overflow-hidden relative">
+            <div className="mb-1 flex items-center justify-between">
+              <div className="text-xs font-semibold text-slate-700">Financial Overview</div>
+              <div className="text-xs text-slate-500">6 month projection</div>
+            </div>
             <div className="h-20 w-full overflow-hidden">
-              <TinySparkline points={spark} stroke="#60a5fa" />
+              <TinySparkline points={spark} stroke="url(#sparkGradient)" />
+              <svg className="h-0 w-0">
+                <defs>
+                  <linearGradient id="sparkGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#4f46e5" />
+                    <stop offset="100%" stopColor="#60a5fa" />
+                  </linearGradient>
+                </defs>
+              </svg>
             </div>
           </div>
         </div>
       </div>
 
-      {/* CTAs */}
-      <div className="mt-4 flex flex-wrap gap-2">
-        <button className="btn-primary" onClick={() => nav("/budget")}>Open Budget</button>
+      {/* Enhanced CTAs */}
+      <div className="mt-6 flex flex-wrap gap-3">
+        <button 
+          className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-md hover:shadow-lg hover:shadow-blue-500/20 transition-all duration-300" 
+          onClick={() => nav("/budget")}
+        >
+          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M22 10l-2-4h-3l1-4h-2l-1 4h-4l1-4h-2l-1 4H6L4 10h3l-1 4h-3l-2 4h3l-1 4h2l1-4h4l-1 4h2l1-4h3l2-4h-3l1-4h3zm-11 4h-4l1-4h4l-1 4z" />
+          </svg>
+          Open Full Budget
+        </button>
         <button
-          className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 hover:bg-slate-50"
+          className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50 transition-all duration-300"
           onClick={() => nav("/forecast")}
         >
-          Forecast
+          <svg className="h-4 w-4 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M4 14l4-4 4 4 8-8" />
+            <path d="M4 20h16M18 4h2v2" />
+          </svg>
+          Create Forecast
         </button>
       </div>
     </div>
@@ -200,31 +316,56 @@ function WhyFinicoCard() {
     { icon: "export", title: "Share & export",  desc: "Snapshots you can keep or send to others." },
   ]
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
-      <div className="text-[15px] font-semibold text-slate-900">Why Finico?</div>
-      <ul className="mt-3 space-y-3">
-        {items.map((it) => (
-          <li key={it.title} className="flex items-start gap-3">
-            <div className="grid h-8 w-8 place-items-center rounded-lg bg-blue-50">
-              <Icon name={it.icon} className="h-4 w-4 text-blue-600" />
+    <div className="rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-lg transition-all duration-300 hover:shadow-xl backdrop-blur-sm relative overflow-hidden group">
+      {/* Interactive gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-indigo-50/50 via-white to-blue-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+      
+      {/* Card header with icon */}
+      <div className="flex items-center gap-2 relative">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-100 to-blue-100">
+          <svg className="h-4 w-4 text-indigo-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </div>
+        <div className="text-[16px] font-semibold text-slate-900">Why Finico?</div>
+      </div>
+      
+      {/* Feature list with enhanced styling */}
+      <ul className="mt-4 space-y-4 relative">
+        {items.map((it, index) => (
+          <li key={it.title} className="flex items-start gap-3.5 transition-transform duration-300 hover:translate-x-1">
+            <div className="grid h-9 w-9 place-items-center rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 shadow-sm">
+              <Icon name={it.icon} className="h-4 w-4 text-white" />
             </div>
             <div>
               <div className="text-sm font-semibold text-slate-900">{it.title}</div>
-              <div className="text-sm text-slate-600">{it.desc}</div>
+              <div className="text-sm text-slate-600 leading-relaxed">{it.desc}</div>
             </div>
           </li>
         ))}
       </ul>
 
-      <div className="mt-4 rounded-xl border border-slate-200 bg-gradient-to-r from-sky-50 to-indigo-50 p-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-[12px] font-semibold text-slate-700">Education</div>
-            <div className="text-sm text-slate-600">Bite-sized guides for budgeting & risk.</div>
+      {/* Enhanced education promo card */}
+      <div className="mt-6 rounded-xl border border-slate-200/80 bg-gradient-to-r from-indigo-50 to-blue-50 p-4 shadow-sm relative overflow-hidden group-hover:shadow-md transition-all duration-300">
+        <div className="absolute bottom-0 right-0 w-32 h-32 bg-gradient-to-t from-indigo-100/50 to-transparent rounded-full blur-2xl"></div>
+        <div className="flex items-center gap-4">
+          <div className="flex-shrink-0 h-12 w-12 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-md">
+            <svg className="h-5 w-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 14l9-5-9-5-9 5 9 5z"/>
+              <path d="M12 14l6.16-3.4a12 12 0 01.2 6.8m-12.72 0a12 12 0 01.2-6.8L12 14"/>
+              <path d="M12 14v10"/>
+            </svg>
           </div>
-          <Link to="/help" className="inline-flex items-center gap-1 text-sm font-semibold text-blue-700 hover:underline">
-            Read guides <Icon name="arrow" className="h-4 w-4" />
-          </Link>
+          <div className="flex-1">
+            <div className="text-xs font-semibold text-indigo-700 uppercase tracking-wider">Financial Education</div>
+            <div className="text-sm font-medium text-slate-700">Bite-sized guides for budgeting & risk analysis</div>
+            <Link to="/help" className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-blue-700 hover:text-indigo-700 transition-colors duration-200">
+              Explore guides
+              <svg className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </Link>
+          </div>
         </div>
       </div>
     </div>
@@ -241,65 +382,80 @@ function AtAGlanceCard() {
   const activity = [7, 10, 9, 12, 8, 14, 16, 13]
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
-      <div className="text-[15px] font-semibold text-slate-900">At a glance</div>
-      <div className="mt-3 grid grid-cols-2 gap-3">
-        {stats.map((s) => (
-          <div key={s.label} className="rounded-xl border border-slate-200 p-3">
-            <div className="text-[11px] font-semibold tracking-wide text-slate-500">{s.label}</div>
-            <div className="mt-1 text-lg font-bold text-slate-900">{s.value}</div>
+    <div className="rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-lg transition-all duration-300 hover:shadow-xl backdrop-blur-sm relative overflow-hidden group">
+      {/* Interactive gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 via-white to-purple-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+      
+      {/* Card header with icon */}
+      <div className="flex items-center gap-2 relative">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-100 to-purple-100">
+          <svg className="h-4 w-4 text-purple-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M8 9l4-4 4 4M16 15l-4 4-4-4" strokeLinecap="round" strokeLinejoin="round"/>
+            <circle cx="12" cy="12" r="9" />
+          </svg>
+        </div>
+        <div className="text-[16px] font-semibold text-slate-900">Financial Snapshot</div>
+      </div>
+      
+      {/* Stats grid with enhanced styling */}
+      <div className="mt-4 grid grid-cols-2 gap-3">
+        {stats.map((s, idx) => (
+          <div 
+            key={s.label} 
+            className="rounded-xl border border-slate-200/70 bg-white p-3.5 shadow-sm transition-all duration-300 hover:shadow-md overflow-hidden relative group/stat"
+            style={{ transitionDelay: `${idx * 50}ms` }}
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-slate-50 to-blue-50/30 opacity-0 group-hover/stat:opacity-100 transition-opacity duration-300"></div>
+            <div className="text-[11px] font-semibold tracking-wider text-slate-500 uppercase relative">{s.label}</div>
+            <div className="mt-1 text-lg font-bold text-slate-900 relative bg-gradient-to-r from-blue-700 to-purple-700 bg-clip-text group-hover/stat:text-transparent transition-colors duration-500">
+              {s.value}
+            </div>
           </div>
         ))}
       </div>
 
-      <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50/50 p-3">
-        <div className="flex items-center justify-between">
-          <div className="text-sm font-semibold text-slate-900">Recent activity</div>
-          <Link to="/help" className="text-xs text-blue-700 hover:underline">View details</Link>
+      {/* Enhanced activity chart */}
+      <div className="mt-4 rounded-xl border border-slate-200/80 bg-white p-4 shadow-sm group-hover:shadow-md transition-all duration-300 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-50/50 to-purple-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+        <div className="flex items-center justify-between relative">
+          <div className="flex items-center gap-2">
+            <svg className="h-4 w-4 text-purple-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 20V10M18 20V4M6 20v-4" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <div className="text-sm font-semibold text-slate-900">Recent Activity</div>
+          </div>
+          <Link to="/help" className="flex items-center gap-1 text-xs font-medium text-blue-700 hover:text-purple-700 transition-colors duration-200">
+            View details
+            <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </Link>
         </div>
-        <div className="mt-2 h-20 w-full overflow-hidden">
-          <TinySparkline points={activity} stroke="#6366f1" />
+        <div className="mt-3 h-20 w-full overflow-hidden relative">
+          <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-purple-50/30 to-transparent rounded-b-lg"></div>
+          <TinySparkline points={activity} stroke="url(#activityGradient)" />
+          <svg className="h-0 w-0">
+            <defs>
+              <linearGradient id="activityGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#6366f1" />
+                <stop offset="100%" stopColor="#a855f7" />
+              </linearGradient>
+            </defs>
+          </svg>
         </div>
       </div>
 
-      <p className="mt-2 text-[11px] text-slate-500">Numbers are illustrative; real usage updates soon.</p>
+      <div className="mt-3 flex items-center gap-1.5 text-[11px] text-slate-500">
+        <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        Numbers are illustrative; real usage updates soon.
+      </div>
     </div>
   )
 }
 
-function InsightsSection() {
-  const cards = [
-    { tag: "Guide • 6 min", title: "The 50/30/20 rule — still useful in 2025?", blurb: "A quick primer with real-world tweaks for high-inflation periods.", href: "/help" },
-    { tag: "Guide • 4 min", title: "Nominal vs real returns (and why it matters).", blurb: "See how inflation changes your wealth picture, with a tiny example.", href: "/help" },
-    { tag: "Guide • 5 min", title: "Monte-Carlo: plan for best / worst cases.", blurb: "Stress-test your plan so surprises don’t derail your goals.", href: "/risk" },
-  ]
-  return (
-    <section className="mx-auto mt-10 max-w-6xl px-4">
-      <div className="text-xl font-bold text-slate-900">Financial insights</div>
-      <p className="mt-1 text-slate-600">Bite-sized guides to build confidence with money.</p>
-
-      <div className="mt-4 grid gap-4 md:grid-cols-3">
-        {cards.map((c) => (
-          <article key={c.title} className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <div className="pointer-events-none absolute -inset-12 -z-10 aurora-bg opacity-30 transition-opacity group-hover:opacity-50" />
-            <div className="text-[11px] font-semibold text-blue-700">{c.tag}</div>
-            <h3 className="mt-1 text-[15px] font-semibold text-slate-900">{c.title}</h3>
-            <p className="mt-1 text-sm text-slate-600">{c.blurb}</p>
-            <Link to={c.href} className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-blue-700 hover:underline">
-              Read <Icon name="arrow" className="h-4 w-4" />
-            </Link>
-          </article>
-        ))}
-      </div>
-
-      <div className="mt-4">
-        <Link to="/help" className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 hover:bg-slate-50">
-          View all insights <Icon name="arrow" className="h-4 w-4" />
-        </Link>
-      </div>
-    </section>
-  )
-}
+// InsightsSection is now imported from components/InsightsSection.jsx
 
 /* -----------------------------------------------------------------------------
   Floating tip (gentle + frequency-limited)
@@ -357,15 +513,48 @@ function FloatingTips() {
  ----------------------------------------------------------------------------- */
 export default function Home() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50/80 overflow-hidden">
+      {/* Decorative background elements */}
+      <div className="fixed inset-0 -z-10">
+        <div className="absolute top-1/3 left-0 h-64 w-64 rounded-full bg-blue-100/30 blur-3xl"></div>
+        <div className="absolute top-2/3 right-0 h-80 w-80 rounded-full bg-indigo-100/40 blur-3xl"></div>
+        <div className="absolute bottom-0 left-1/4 h-72 w-72 rounded-full bg-blue-100/30 blur-3xl"></div>
+      </div>
+      
+      {/* Wave pattern (optional) */}
+      <div className="absolute inset-0 -z-10 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTQ0MCIgaGVpZ2h0PSI3NDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9IndhdjEiIHBhdHRlcm5Vbml0cz0idXNlclNwYWNlT25Vc2UiIHdpZHRoPSIxNDQwIiBoZWlnaHQ9IjY0MCIgcGF0dGVyblRyYW5zZm9ybT0ic2NhbGUoMSkiPjxwYXRoIGQ9Ik0wIDQwYzIwIDAgNDAgNDAgODAgNDBzNjAtNDAgODAtNDAgNjAgNDAgODAgNDBjNDAgMCA2MC00MCA4MC00MHM0MCA0MCA4MCA0MCA2MC00MCA4MC00MCA0MCA0MCA4MCA0MCA2MC00MCA4MC00MCA0MCA0MCA4MCA0MCA2MC00MCA4MC00MCA0MCA0MCA4MCA0MCA2MC00MCA4MC00MCA0MCA0MCA4MCA0MCA2MC00MCA4MC00MCA0MCA0MCA4MCA0MCA2MC00MCA4MC00MHY2MDBIMFYweiIgb3BhY2l0eT0iLjA1IiBmaWxsPSIjYzdjZGZlIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjd2F2MSkiLz48L3N2Zz4=')] opacity-30"></div>
+      
       <Hero />
-      <section className="mx-auto mt-5 max-w-6xl px-4">
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <QuickDemoCard />
-          <WhyFinicoCard />
-          <AtAGlanceCard />
+      
+      {/* Main content section with subtle animation */}
+      <section className="relative mx-auto mt-8 max-w-7xl px-4">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="transform transition-all duration-500 hover:translate-y-[-8px]">
+            <QuickDemoCard />
+          </div>
+          <div className="transform transition-all duration-500 hover:translate-y-[-8px] delay-75">
+            <WhyFinicoCard />
+          </div>
+          <div className="transform transition-all duration-500 hover:translate-y-[-8px] delay-150">
+            <AtAGlanceCard />
+          </div>
         </div>
       </section>
+      
+      {/* Divider with subtle animation */}
+      <div className="relative mx-auto my-12 max-w-4xl">
+        <div className="absolute inset-0 flex items-center" aria-hidden="true">
+          <div className="w-full border-t border-slate-200"></div>
+        </div>
+        <div className="relative flex justify-center">
+          <span className="bg-white px-4 text-sm text-slate-500">
+            <svg className="h-5 w-5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </span>
+        </div>
+      </div>
+      
       <InsightsSection />
       <FloatingTips />
     </div>

@@ -5,13 +5,21 @@ import logo from "../assets/finico-high-resolution-logo-transparent.png"
 export default function Footer() {
   return (
     <footer className="mt-14">
-      <div className="brand-bg h-[3px] w-full" />
+      <div className="h-[3px] w-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500" />
 
       <div className="relative overflow-hidden">
-        {/* Decorative field */}
+        {/* Enhanced decorative background */}
         <div className="absolute inset-0 -z-10 bg-gradient-to-b from-white via-blue-50/35 to-slate-50" />
-        <div className="aurora-bg absolute left-[-15%] top-[-25%] h-[520px] w-[520px] -z-10 opacity-40" />
-        <div className="aurora-bg absolute right-[-10%] bottom-[-30%] h-[420px] w-[420px] -z-10 opacity-35" />
+        
+        {/* Modernized decorative elements */}
+        <div className="absolute left-[-15%] top-[-25%] h-[520px] w-[520px] -z-10 rounded-full bg-gradient-to-br from-blue-200/30 via-indigo-200/30 to-purple-200/30 blur-3xl"></div>
+        <div className="absolute right-[-10%] bottom-[-30%] h-[420px] w-[420px] -z-10 rounded-full bg-gradient-to-tr from-blue-200/30 via-indigo-200/30 to-purple-200/30 blur-3xl"></div>
+        
+        {/* Floating dots pattern (subtle) */}
+        <div className="absolute inset-0 -z-5 opacity-20" style={{
+          backgroundImage: "radial-gradient(circle at 25px 25px, rgba(99, 102, 241, 0.15) 2px, transparent 0)",
+          backgroundSize: "50px 50px"
+        }}></div>
 
         <div className="mx-auto max-w-6xl px-4 py-12">
           {/* Brand hero row */}
@@ -35,13 +43,35 @@ export default function Footer() {
               </div>
             </div>
 
-            {/* Newsletter */}
-            <form onSubmit={(e)=>e.preventDefault()} className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+            {/* Enhanced Newsletter */}
+            <form onSubmit={(e)=>e.preventDefault()} className="w-full max-w-lg rounded-2xl border border-slate-200/70 bg-white/80 backdrop-blur-sm p-4 shadow-md transition-all duration-300 hover:shadow-lg">
+              <div className="mb-2 text-sm font-semibold text-slate-700">Stay updated with financial insights</div>
               <div className="flex items-center gap-2">
-                <input type="email" required placeholder="Get monthly tips & new features" className="h-11 flex-1 rounded-xl border border-transparent px-3 text-sm text-slate-900 outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-200"/>
-                <button className="btn-primary h-11">Subscribe</button>
+                <div className="relative flex-1">
+                  <svg className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21 12c0-4.97-4.03-9-9-9s-9 4.03-9 9 4.03 9 9 9 9-4.03 9-9z" strokeLinecap="round"/>
+                    <path d="M3 12h6m6 0h6M12 3v6m0 6v6" strokeLinecap="round"/>
+                  </svg>
+                  <input 
+                    type="email" 
+                    required 
+                    placeholder="Enter your email" 
+                    className="h-12 w-full rounded-xl border border-slate-200 bg-white/90 pl-10 pr-3 text-sm text-slate-900 outline-none transition-all duration-300 focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                  />
+                </div>
+                <button className="relative overflow-hidden h-12 px-5 rounded-xl font-medium text-white transition-all duration-300 hover:shadow-[0_5px_15px_rgba(59,130,246,0.35)]">
+                  <span className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600"></span>
+                  <span className="absolute inset-0 bg-gradient-to-r from-blue-500 to-indigo-500 opacity-0 hover:opacity-100 transition-opacity duration-300"></span>
+                  <span className="relative">Subscribe</span>
+                </button>
               </div>
-              <div className="mt-1 px-1 text-[11px] text-slate-500">No spam. Unsubscribe any time.</div>
+              <div className="mt-2 px-1 flex items-center gap-2 text-[11px] text-slate-500">
+                <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 22s-8-4.5-8-11.8A8 8 0 0112 2a8 8 0 018 8.2c0 7.3-8 11.8-8 11.8z" />
+                  <circle cx="12" cy="10" r="3" />
+                </svg>
+                No spam. Unsubscribe any time.
+              </div>
             </form>
           </div>
 

@@ -32,15 +32,19 @@ function NavItem({ to, icon, children }) {
       to={to}
       className={cx(
         "relative inline-flex items-center gap-2 rounded-lg px-3 py-2 text-[14.5px] font-medium",
-        "text-slate-700 hover:text-slate-900 hover:bg-slate-50 transition-colors"
+        "text-slate-700 hover:text-slate-900 transition-all duration-300",
+        "before:absolute before:inset-0 before:z-0 before:rounded-lg before:opacity-0 before:transition-opacity",
+        "before:bg-gradient-to-r before:from-blue-50 before:to-indigo-50",
+        "hover:before:opacity-100"
       )}
     >
-      <Icon name={icon} className="h-[18px] w-[18px] text-blue-600/80" />
-      <span>{children}</span>
+      <Icon name={icon} className="relative z-10 h-[18px] w-[18px] text-blue-600/80" />
+      <span className="relative z-10">{children}</span>
       <span
         className={cx(
-          "absolute -bottom-2 left-1/2 h-[3px] w-0 -translate-x-1/2 rounded-full brand-bg transition-all duration-300",
-          active && "w-7"
+          "absolute -bottom-2 left-1/2 h-[3px] w-0 -translate-x-1/2 rounded-full transition-all duration-300",
+          "bg-gradient-to-r from-blue-500 to-indigo-500",
+          active ? "w-12" : "w-0"
         )}
       />
     </NavLink>
@@ -201,21 +205,32 @@ export default function Navbar() {
   return (
     <header className="sticky top-0 z-50">
       {/* scroll progress */}
-      <div className="fixed left-0 top-0 z-[60] h-[3px] brand-bg" style={{ width: `${progress}%` }} />
+      <div className="fixed left-0 top-0 z-[60] h-[3px] bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-500 bg-[length:200%_100%]" 
+           style={{ 
+             width: `${progress}%`, 
+             animation: progress > 0 ? 'shimmer 2.5s infinite linear' : 'none'
+           }} 
+      />
 
       {/* main bar */}
-      <div className={cx("bg-white","border-b border-slate-200", scrolled ? "shadow-[0_1px_0_rgba(2,6,23,0.06),0_4px_14px_rgba(2,6,23,0.05)]" : "shadow-none")}>
-        <div className="mx-auto max-w-6xl px-3 sm:px-4">
+      <div className={cx(
+        "backdrop-blur-md bg-white/95 border-b border-slate-200/80",
+        "transition-all duration-300",
+        scrolled ? "shadow-[0_8px_30px_rgba(0,0,0,0.08)]" : "shadow-none"
+      )}>
+        <div className="mx-auto max-w-7xl px-3 sm:px-4">
           <div className="flex h-20 md:h-24 items-center justify-between gap-3">
-            {/* Logo chip — enlarged */}
-            <Link to="/" className="flex items-center">
-              <div className="rounded-xl bg-white p-2 shadow-sm ring-1 ring-slate-200">
+            {/* Logo chip with animation */}
+            <Link to="/" className="flex items-center group">
+              <div className="relative overflow-hidden rounded-xl bg-white p-2 shadow-sm transition-all duration-300 group-hover:shadow-md">
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-100/50 to-indigo-100/50 opacity-0 transition-opacity duration-300 group-hover:opacity-100"></div>
                 <img
                   src={logo}
                   alt="Finico"
-                  className="h-[52px] sm:h-[62px] md:h-[72px] w-auto object-contain"
+                  className="h-[52px] sm:h-[62px] md:h-[72px] w-auto object-contain relative z-10"
                   draggable="false"
                 />
+                <div className="absolute -bottom-6 -right-6 h-12 w-12 rounded-full bg-gradient-to-r from-blue-200/40 to-indigo-200/40 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               </div>
             </Link>
 
@@ -273,10 +288,19 @@ export default function Navbar() {
             </nav>
 
             {/* actions */}
-            <div className="flex items-center gap-2">
-              <Link to="/login" className="btn-primary">Sign in</Link>
+            <div className="flex items-center gap-3">
+              <Link to="/login" className="relative overflow-hidden rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition-all duration-300 hover:shadow-[0_5px_15px_rgba(59,130,246,0.35)]">
+                <span className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600"></span>
+                <span className="absolute inset-0 bg-gradient-to-r from-blue-500 to-indigo-500 opacity-0 hover:opacity-100 transition-opacity duration-300"></span>
+                <span className="relative flex items-center gap-1.5">
+                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  Sign in
+                </span>
+              </Link>
               <button
-                className="md:hidden inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50"
+                className="md:hidden inline-flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 text-slate-700 border-0 hover:shadow-sm transition-all duration-300"
                 aria-label="Toggle menu"
                 onClick={() => setOpen((v) => !v)}
               >
@@ -293,7 +317,10 @@ export default function Navbar() {
       </div>
 
       {/* news strip (external links via API_BASE) */}
-      <NewsStrip />
+      <div className="relative overflow-hidden border-y border-slate-200/70 bg-gradient-to-r from-slate-50/95 via-white to-slate-50/95 backdrop-blur-sm">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_10%_20%,rgba(59,130,246,0.02),transparent_50%)]"></div>
+        <NewsStrip />
+      </div>
 
       {/* mobile menu */}
       {open && (
