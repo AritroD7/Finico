@@ -1,13 +1,12 @@
-// FILE: client/src/pages/Home.jsx
-import { useEffect, useRef, useMemo, useState } from "react"
+// FILE: client/src/pages/SimpleHome.jsx
+import { useEffect, useRef, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import InsightsSection from "../components/InsightsSection"
-import { Icon } from "../components/Icons"
 import AnimatedHero from "../components/AnimatedHero"
 import FeatureShowcase from "../components/FeatureShowcase"
 import AnimatedDataChart from "../components/AnimatedDataChart"
 import DashboardCard from "../components/DashboardCard"
 import AnimatedTestimonials from "../components/AnimatedTestimonials"
+import { Icon } from "../components/Icons"
 
 /* -----------------------------------------------------------------------------
   Currency helpers
@@ -15,9 +14,6 @@ import AnimatedTestimonials from "../components/AnimatedTestimonials"
 const fmt = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 })
 const fmt0 = (n) => fmt.format(Math.max(0, Math.round(n)))
 
-/* -----------------------------------------------------------------------------
-  Sample Data
- ----------------------------------------------------------------------------- */
 // Sample data for charts
 const monthlyData = [
   { label: 'Jan', value: 2500 },
@@ -41,21 +37,21 @@ const testimonials = [
   {
     name: "Sarah Johnson",
     title: "Small Business Owner",
-    quote: "Finico helped me understand my business cash flow in a way I never could before. Now I can make informed decisions that actually grow my company.",
+    quote: "Finico helped me understand my business cash flow in a way I never could before.",
     avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80",
     rating: 5
   },
   {
     name: "Michael Rodriguez",
     title: "Software Engineer",
-    quote: "The wealth forecast tool helped me realize I could retire 5 years earlier than I thought! The visualizations make complex financial concepts easy to understand.",
+    quote: "The wealth forecast tool helped me realize I could retire 5 years earlier than I thought!",
     avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80",
     rating: 5
   },
   {
     name: "Jennifer Lee",
     title: "Marketing Director",
-    quote: "I finally got control over my budget after years of struggling. The insights and recommendations are like having a financial advisor in my pocket.",
+    quote: "I finally got control over my budget after years of struggling.",
     avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80",
     rating: 4
   }
@@ -112,57 +108,15 @@ const features = [
   }
 ];
 
-/* -----------------------------------------------------------------------------
-  Micro charts (sparkline + donut)
- ----------------------------------------------------------------------------- */
-function TinySparkline({ points = [], className = "h-20 w-full", stroke = "#60a5fa" }) {
-  // strict height to avoid layout collapse
-  const H = 80, W = 180, PAD = 8
-  if (!points.length) return <div className={className} />
-  const xs = points.map((_, i) => PAD + (i * (W - PAD * 2)) / (points.length - 1))
-  const min = Math.min(...points), max = Math.max(...points)
-  const ys = points.map(v => H - PAD - ((v - min) / (max - min || 1)) * (H - PAD * 2))
-  const d = xs.map((x, i) => `${i ? "L" : "M"}${x},${ys[i]}`).join(" ")
-  return (
-    <svg viewBox={`0 0 ${W} ${H}`} className={className}>
-      <path d={d} fill="none" stroke={stroke} strokeWidth="2.5" />
-    </svg>
-  )
-}
-
-function TinyDonut({ value = 0.75, className = "h-20 w-20", stroke = "#60a5fa", strokeWidth = 12 }) {
-  // SVG math for a basic donut chart
-  const R = 50, C = 50, S = 25 // radius, center, stroke
-  const V = Math.min(1, Math.max(0, value)) // clamp 0-1
-  const ARC_LEN = 2 * Math.PI * R
-  const strokeDasharray = `${ARC_LEN * V} ${ARC_LEN * (1 - V)}`
-  return (
-    <svg viewBox="0 0 100 100" className={className}>
-      <circle cx={C} cy={C} r={R - S/2} fill="none" stroke="#eee" strokeWidth={S} />
-      <circle 
-        cx={C} cy={C} r={R - S/2} 
-        fill="none" 
-        stroke={stroke} 
-        strokeWidth={S} 
-        strokeDasharray={strokeDasharray}
-        transform="rotate(-90) translate(-100, 0)" 
-      />
-    </svg>
-  )
-}
-
-/* -----------------------------------------------------------------------------
-  Page
- ----------------------------------------------------------------------------- */
-export default function Home() {
-  const navigate = useNavigate()
-  const [currentDemoIndex, setCurrentDemoIndex] = useState(0)
+export default function SimpleHome() {
+  const navigate = useNavigate();
+  const [currentDemoIndex, setCurrentDemoIndex] = useState(0);
   const fadeRef = useRef(null);
 
   // Demo rotation effect
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentDemoIndex(prev => (prev + 1) % features.length)
+      setCurrentDemoIndex(prev => (prev + 1) % features.length);
       
       // Add fade animation
       if (fadeRef.current) {
@@ -316,9 +270,6 @@ export default function Home() {
           </div>
         </div>
       </div>
-      
-      {/* Original Insights Section - Can be retained or replaced */}
-      <InsightsSection />
     </div>
-  )
+  );
 }
