@@ -1,5 +1,7 @@
 // FILE: client/src/App.jsx
 import { Routes, Route, Navigate } from "react-router-dom"
+import Navbar from "./components/Navbar"
+import Footer from "./components/Footer"
 import "./styles/interactivity.css"
 import "./styles/premium.css"
 
@@ -19,21 +21,25 @@ import AuthCallback from "./pages/AuthCallback"
 export default function App() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-surface-1 to-surface-2 text-neutral-800">
-      <Routes>
-        <Route path="/" element={<PremiumHome />} />
-        <Route path="/simple" element={<SimpleHome />} />
-        <Route path="/classic" element={<Home />} />
-        <Route path="/budget" element={<BudgetPlanner />} />
-        <Route path="/forecast" element={<WealthForecast />} />
-        <Route path="/risk" element={<RiskModeling />} />
-        <Route path="/loans" element={<LoanCalculator />} />
-        <Route path="/networth" element={<NetWorth />} />
-        <Route path="/help" element={<Help />} />
-        <Route path="/account" element={<Account />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/auth/callback" element={<AuthCallback />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <Navbar />
+      <main className="max-w-6xl mx-auto p-4">
+        <Routes>
+          <Route path="/" element={<PremiumHome />} />
+          <Route path="/simple" element={<SimpleHome />} />
+          <Route path="/classic" element={<Home />} />
+          <Route path="/budget" element={<BudgetPlanner />} />
+          <Route path="/forecast" element={<WealthForecast />} />
+          <Route path="/risk" element={<RiskModeling />} />
+          <Route path="/loans" element={<LoanCalculator />} />
+          <Route path="/networth" element={<NetWorth />} />
+          <Route path="/help" element={<Help />} />
+          <Route path="/account" element={<Account />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </main>
+      <Footer />
     </div>
   )
 }
