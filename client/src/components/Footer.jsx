@@ -1,152 +1,357 @@
 // FILE: client/src/components/Footer.jsx
+import { useState } from "react"
 import { Link } from "react-router-dom"
+import { 
+  Twitter, Github, Linkedin, Youtube, Facebook, Instagram,
+  Mail, Phone, MapPin, Send, ChevronRight, ExternalLink,
+  Shield, Award, Users, Star, ArrowUp, Heart
+} from "lucide-react"
 import logo from "../assets/finico-high-resolution-logo-transparent.png"
 
 export default function Footer() {
+  const [email, setEmail] = useState("")
+  const [subscribeStatus, setSubscribeStatus] = useState("")
+  const [showScrollTop, setShowScrollTop] = useState(false)
+
+  // Handle newsletter subscription
+  const handleSubscribe = (e) => {
+    e.preventDefault()
+    if (email) {
+      setSubscribeStatus("success")
+      setTimeout(() => {
+        setEmail("")
+        setSubscribeStatus("")
+      }, 3000)
+    }
+  }
+
+  // Scroll to top functionality
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }
+
+  // Show/hide scroll to top button
+  useState(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 400)
+    }
+    window.addEventListener("scroll", handleScroll)
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [])
+
   return (
-    <footer className="mt-14">
-      <div className="h-[3px] w-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500" />
+    <footer className="relative bg-gradient-to-b from-gray-900 to-black border-t border-gray-800">
+      {/* Background decoration */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl" />
+      </div>
 
-      <div className="relative overflow-hidden">
-        {/* Enhanced decorative background */}
-        <div className="absolute inset-0 -z-10 bg-gradient-to-b from-white via-blue-50/35 to-slate-50" />
-        
-        {/* Modernized decorative elements */}
-        <div className="absolute left-[-15%] top-[-25%] h-[520px] w-[520px] -z-10 rounded-full bg-gradient-to-br from-blue-200/30 via-indigo-200/30 to-purple-200/30 blur-3xl"></div>
-        <div className="absolute right-[-10%] bottom-[-30%] h-[420px] w-[420px] -z-10 rounded-full bg-gradient-to-tr from-blue-200/30 via-indigo-200/30 to-purple-200/30 blur-3xl"></div>
-        
-        {/* Floating dots pattern (subtle) */}
-        <div className="absolute inset-0 -z-5 opacity-20" style={{
-          backgroundImage: "radial-gradient(circle at 25px 25px, rgba(99, 102, 241, 0.15) 2px, transparent 0)",
-          backgroundSize: "50px 50px"
-        }}></div>
-
-        <div className="mx-auto max-w-6xl px-4 py-12">
-          {/* Brand hero row */}
-          <div className="flex flex-col items-start gap-6 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-4">
-              <div className="rounded-3xl bg-white p-3 shadow-sm ring-1 ring-slate-200">
-                <img src={logo} alt="Finico" className="h-[88px] w-auto object-contain" />
-              </div>
-              <div>
-                <div className="text-3xl font-extrabold tracking-tight">
-                  <span className="brand-text">Finico</span>
+      {/* Newsletter Section */}
+      <div className="relative border-b border-gray-800">
+        <div className="container mx-auto px-4 py-12">
+          <div className="max-w-4xl mx-auto">
+            <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 backdrop-blur-sm rounded-3xl p-8 md:p-12 border border-blue-500/20">
+              <div className="grid md:grid-cols-2 gap-8 items-center">
+                <div>
+                  <h3 className="text-2xl md:text-3xl font-bold text-white mb-2">
+                    Stay ahead of your finances
+                  </h3>
+                  <p className="text-gray-400">
+                    Get weekly insights, market updates, and exclusive financial tips delivered to your inbox.
+                  </p>
                 </div>
-                <p className="mt-1 max-w-md text-slate-600">
-                  Educational, beautifully-polished tools for budgets, forecasts, and risk.
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <span className="rounded-full bg-white/80 px-3 py-1 text-xs font-semibold text-blue-700 ring-1 ring-blue-200">Local-first</span>
-                  <span className="rounded-full bg-white/80 px-3 py-1 text-xs font-semibold text-blue-700 ring-1 ring-blue-200">Exportable charts</span>
-                  <span className="rounded-full bg-white/80 px-3 py-1 text-xs font-semibold text-blue-700 ring-1 ring-blue-200">Free (MVP)</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Enhanced Newsletter */}
-            <form onSubmit={(e)=>e.preventDefault()} className="w-full max-w-lg rounded-2xl border border-slate-200/70 bg-white/80 backdrop-blur-sm p-4 shadow-md transition-all duration-300 hover:shadow-lg">
-              <div className="mb-2 text-sm font-semibold text-slate-700">Stay updated with financial insights</div>
-              <div className="flex items-center gap-2">
-                <div className="relative flex-1">
-                  <svg className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M21 12c0-4.97-4.03-9-9-9s-9 4.03-9 9 4.03 9 9 9 9-4.03 9-9z" strokeLinecap="round"/>
-                    <path d="M3 12h6m6 0h6M12 3v6m0 6v6" strokeLinecap="round"/>
-                  </svg>
-                  <input 
-                    type="email" 
-                    required 
-                    placeholder="Enter your email" 
-                    className="h-12 w-full rounded-xl border border-slate-200 bg-white/90 pl-10 pr-3 text-sm text-slate-900 outline-none transition-all duration-300 focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-                  />
-                </div>
-                <button className="relative overflow-hidden h-12 px-5 rounded-xl font-medium text-white transition-all duration-300 hover:shadow-[0_5px_15px_rgba(59,130,246,0.35)]">
-                  <span className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600"></span>
-                  <span className="absolute inset-0 bg-gradient-to-r from-blue-500 to-indigo-500 opacity-0 hover:opacity-100 transition-opacity duration-300"></span>
-                  <span className="relative">Subscribe</span>
-                </button>
-              </div>
-              <div className="mt-2 px-1 flex items-center gap-2 text-[11px] text-slate-500">
-                <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M12 22s-8-4.5-8-11.8A8 8 0 0112 2a8 8 0 018 8.2c0 7.3-8 11.8-8 11.8z" />
-                  <circle cx="12" cy="10" r="3" />
-                </svg>
-                No spam. Unsubscribe any time.
-              </div>
-            </form>
-          </div>
-
-          {/* Links grid */}
-          <div className="mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-            <FooterCol title="Product" items={[
-              ["Budget", "/budget"], ["Forecast", "/forecast"], ["Risk", "/risk"], ["Loans", "/loans"], ["Net Worth", "/networth"],
-            ]}/>
-            <FooterCol title="Learn" items={[
-              ["Budgeting basics", "/help"], ["Forecasting 101", "/help"], ["Risk & Monte Carlo", "/help"], ["Net worth tracking", "/help"],
-            ]}/>
-            <FooterCol title="Company" items={[
-              ["About", "/help"], ["FAQ", "/help"], ["Press", "/help"],
-            ]}/>
-            <div>
-              <div className="text-sm font-semibold text-slate-900">Connect</div>
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <Social icon="twitter" />
-                <Social icon="github" />
-                <Social icon="linkedin" />
-                <Social icon="mail" />
-              </div>
-              <div className="mt-3 text-sm text-slate-600">hello@finico.app</div>
-              <div className="mt-1 text-xs text-slate-500">Educational math models — not investment advice.</div>
-            </div>
-          </div>
-
-          {/* Bottom strip */}
-          <div className="mt-10 border-t border-slate-200 pt-4 text-sm text-slate-600">
-            <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
-              <div>© {new Date().getFullYear()} Finico. All rights reserved.</div>
-              <div className="flex flex-wrap items-center gap-4">
-                <Link className="hover:underline" to="/help">Terms</Link>
-                <Link className="hover:underline" to="/help">Privacy</Link>
-                <Link className="hover:underline" to="/help">Security</Link>
-                <Link className="hover:underline" to="/help">Cookies</Link>
+                
+                <form onSubmit={handleSubscribe} className="space-y-4">
+                  <div className="relative">
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="Enter your email"
+                      className="w-full px-6 py-4 bg-gray-900/50 border border-gray-700 rounded-2xl text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors pr-12"
+                      required
+                    />
+                    <button
+                      type="submit"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-3 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl hover:shadow-lg hover:shadow-blue-500/25 transition-all"
+                    >
+                      <Send className="w-5 h-5 text-white" />
+                    </button>
+                  </div>
+                  
+                  {subscribeStatus === "success" && (
+                    <p className="text-green-400 text-sm animate-fade-in">
+                      ✓ Successfully subscribed! Check your email.
+                    </p>
+                  )}
+                  
+                  <p className="text-xs text-gray-500">
+                    By subscribing, you agree to our Privacy Policy. Unsubscribe anytime.
+                  </p>
+                </form>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Main Footer Content */}
+      <div className="relative container mx-auto px-4 py-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-8 lg:gap-12">
+          {/* Brand Column */}
+          <div className="lg:col-span-2">
+            <Link to="/" className="inline-block mb-6">
+              <div className="flex items-center gap-3 group">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl blur-md opacity-50 group-hover:opacity-75 transition-opacity" />
+                  <div className="relative bg-gray-900 p-3 rounded-xl border border-gray-800">
+                    <img src={logo} alt="Finico" className="h-12 w-auto" />
+                  </div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-white">Finico</div>
+                  <div className="text-sm text-gray-400">Smart Financial Planning</div>
+                </div>
+              </div>
+            </Link>
+            
+            <p className="text-gray-400 mb-6 max-w-sm">
+              Empowering individuals with institutional-grade financial tools. 
+              Plan, track, and optimize your wealth with confidence.
+            </p>
+
+            {/* Trust Badges */}
+            <div className="flex flex-wrap gap-4 mb-6">
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-800/50 rounded-lg border border-gray-700">
+                <Shield className="w-4 h-4 text-green-400" />
+                <span className="text-xs text-gray-300">Bank-Grade Security</span>
+              </div>
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-800/50 rounded-lg border border-gray-700">
+                <Award className="w-4 h-4 text-yellow-400" />
+                <span className="text-xs text-gray-300">SOC 2 Certified</span>
+              </div>
+            </div>
+
+            {/* Social Links */}
+            <div className="flex gap-3">
+              <SocialIcon href="#" icon={<Twitter className="w-5 h-5" />} label="Twitter" />
+              <SocialIcon href="#" icon={<Github className="w-5 h-5" />} label="GitHub" />
+              <SocialIcon href="#" icon={<Linkedin className="w-5 h-5" />} label="LinkedIn" />
+              <SocialIcon href="#" icon={<Youtube className="w-5 h-5" />} label="YouTube" />
+              <SocialIcon href="#" icon={<Facebook className="w-5 h-5" />} label="Facebook" />
+              <SocialIcon href="#" icon={<Instagram className="w-5 h-5" />} label="Instagram" />
+            </div>
+          </div>
+
+          {/* Products Column */}
+          <div>
+            <h4 className="text-white font-semibold mb-4">Products</h4>
+            <ul className="space-y-3">
+              <FooterLink to="/budget">Budget Planner</FooterLink>
+              <FooterLink to="/forecast">Wealth Forecast</FooterLink>
+              <FooterLink to="/risk">Risk Analysis</FooterLink>
+              <FooterLink to="/loans">Loan Calculator</FooterLink>
+              <FooterLink to="/networth">Net Worth Tracker</FooterLink>
+              <FooterLink to="/help" badge="New">AI Assistant</FooterLink>
+            </ul>
+          </div>
+
+          {/* Resources Column */}
+          <div>
+            <h4 className="text-white font-semibold mb-4">Resources</h4>
+            <ul className="space-y-3">
+              <FooterLink to="/help">Help Center</FooterLink>
+              <FooterLink to="/help">Documentation</FooterLink>
+              <FooterLink to="/help">API Reference</FooterLink>
+              <FooterLink to="/help">Blog</FooterLink>
+              <FooterLink to="/help">Guides & Tutorials</FooterLink>
+              <FooterLink to="/help">Community Forum</FooterLink>
+              <FooterLink to="/help">Webinars</FooterLink>
+            </ul>
+          </div>
+
+          {/* Company Column */}
+          <div>
+            <h4 className="text-white font-semibold mb-4">Company</h4>
+            <ul className="space-y-3">
+              <FooterLink to="/help">About Us</FooterLink>
+              <FooterLink to="/help">Careers</FooterLink>
+              <FooterLink to="/help">Press Kit</FooterLink>
+              <FooterLink to="/help">Partners</FooterLink>
+              <FooterLink to="/help">Investors</FooterLink>
+              <FooterLink to="/help">Contact</FooterLink>
+            </ul>
+          </div>
+
+          {/* Legal Column */}
+          <div>
+            <h4 className="text-white font-semibold mb-4">Legal</h4>
+            <ul className="space-y-3">
+              <FooterLink to="/help">Terms of Service</FooterLink>
+              <FooterLink to="/help">Privacy Policy</FooterLink>
+              <FooterLink to="/help">Cookie Policy</FooterLink>
+              <FooterLink to="/help">GDPR Compliance</FooterLink>
+              <FooterLink to="/help">Security</FooterLink>
+              <FooterLink to="/help">Licenses</FooterLink>
+            </ul>
+          </div>
+        </div>
+
+        {/* Stats Section */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-12 pt-12 border-t border-gray-800">
+          <StatItem value="50K+" label="Active Users" />
+          <StatItem value="$2.5M+" label="Assets Tracked" />
+          <StatItem value="99.9%" label="Uptime" />
+          <StatItem value="4.9★" label="User Rating" />
+        </div>
+
+        {/* Contact Info */}
+        <div className="grid md:grid-cols-3 gap-6 mt-12 p-6 bg-gray-900/50 rounded-2xl border border-gray-800">
+          <ContactItem
+            icon={<Mail className="w-5 h-5" />}
+            label="Email Us"
+            value="support@finico.app"
+            href="mailto:support@finico.app"
+          />
+          <ContactItem
+            icon={<Phone className="w-5 h-5" />}
+            label="Call Us"
+            value="+1 (555) 123-4567"
+            href="tel:+15551234567"
+          />
+          <ContactItem
+            icon={<MapPin className="w-5 h-5" />}
+            label="Visit Us"
+            value="123 Finance St, NY 10001"
+            href="#"
+          />
+        </div>
+      </div>
+
+      {/* Bottom Bar */}
+      <div className="relative border-t border-gray-800">
+        <div className="container mx-auto px-4 py-6">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-2 text-sm text-gray-400">
+              <span>© 2025 Finico. All rights reserved.</span>
+              <span className="hidden md:inline">•</span>
+              <span className="hidden md:inline">Built with</span>
+              <Heart className="w-4 h-4 text-red-500 hidden md:inline" />
+              <span className="hidden md:inline">for financial freedom</span>
+            </div>
+
+            <div className="flex items-center gap-6 text-sm">
+              <Link to="/help" className="text-gray-400 hover:text-white transition-colors">
+                Status
+              </Link>
+              <Link to="/help" className="text-gray-400 hover:text-white transition-colors">
+                Changelog
+              </Link>
+              <Link to="/help" className="text-gray-400 hover:text-white transition-colors">
+                Sitemap
+              </Link>
+              <div className="flex items-center gap-2">
+                <span className="text-gray-400">Language:</span>
+                <select className="bg-transparent text-gray-300 border border-gray-700 rounded px-2 py-1 text-sm focus:outline-none focus:border-blue-500">
+                  <option value="en">English</option>
+                  <option value="es">Español</option>
+                  <option value="fr">Français</option>
+                  <option value="de">Deutsch</option>
+                  <option value="zh">中文</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Scroll to Top Button */}
+      {showScrollTop && (
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-8 right-8 p-3 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full shadow-lg hover:shadow-xl transform transition-all hover:scale-110 z-40"
+          aria-label="Scroll to top"
+        >
+          <ArrowUp className="w-5 h-5 text-white" />
+        </button>
+      )}
+
+      <style jsx>{`
+        @keyframes fade-in {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+          animation: fade-in 0.3s ease-out;
+        }
+      `}</style>
     </footer>
   )
 }
 
-function FooterCol({ title, items }) {
+/* Component: Social Icon */
+function SocialIcon({ href, icon, label }) {
   return (
-    <div>
-      <div className="text-sm font-semibold text-slate-900">{title}</div>
-      <ul className="mt-2 space-y-1 text-sm">
-        {items.map(([label, href]) => (
-          <li key={label}>
-            <Link to={href} className="text-slate-700 hover:text-slate-900 hover:underline">{label}</Link>
-          </li>
-        ))}
-      </ul>
+    <a
+      href={href}
+      aria-label={label}
+      className="p-2.5 bg-gray-800/50 border border-gray-700 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 hover:border-gray-600 transition-all transform hover:scale-110"
+    >
+      {icon}
+    </a>
+  )
+}
+
+/* Component: Footer Link */
+function FooterLink({ to, children, badge }) {
+  return (
+    <li>
+      <Link
+        to={to}
+        className="group flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
+      >
+        <ChevronRight className="w-3 h-3 opacity-0 -ml-4 group-hover:opacity-100 group-hover:ml-0 transition-all" />
+        <span>{children}</span>
+        {badge && (
+          <span className="px-2 py-0.5 text-[10px] bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-full">
+            {badge}
+          </span>
+        )}
+      </Link>
+    </li>
+  )
+}
+
+/* Component: Stat Item */
+function StatItem({ value, label }) {
+  return (
+    <div className="text-center">
+      <div className="text-2xl md:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
+        {value}
+      </div>
+      <div className="text-sm text-gray-500 mt-1">{label}</div>
     </div>
   )
 }
 
-function Social({ icon }) {
-  const path = (name) => {
-    switch (name) {
-      case "twitter": return (<path d="M22 5.8c-.7.3-1.4.5-2.1.6.8-.5 1.4-1.2 1.7-2.1-.7.4-1.6.8-2.4 1-1.5-1.6-4-1.3-5.2.6-.6 1-.7 2.3-.3 3.4-3.2-.2-6-1.7-7.9-4.1-1.1 1.9-.5 4.3 1.3 5.6-.6 0-1.2-.2-1.8-.5 0 2.1 1.5 3.9 3.6 4.3-.5.1-1 .2-1.5.1.4 1.7 2 2.9 3.8 3-1.7 1.3-3.9 2-6.1 1.7 2 1.3 4.3 2.1 6.8 2.1 8.2 0 12.8-6.9 12.5-13.1.9-.6 1.6-1.3 2.2-2.2z" />)
-      case "github":  return (<path d="M12 2C6.5 2 2 6.6 2 12.2c0 4.5 2.9 8.3 6.9 9.6.5.1.7-.2.7-.5v-2c-2.8.6-3.3-1.2-3.3-1.2-.5-1.1-1.2-1.4-1.2-1.4-1-.7.1-.7.1-.7 1.1.1 1.7 1.2 1.7 1.2 1 .1 1.6-.7 1.8-1 .1-.7.4-1.2.8-1.5-2.2-.2-4.6-1.2-4.6-5.2 0-1.1.4-2 .9-2.7-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.8 1.1.8-.2 1.7-.3 2.6-.3s1.8.1 2.6.3c2-1.4 2.8-1.1 2.8-1.1.5 1.4.2 2.4.1 2.7.6.6.9 1.6.9 2.7 0 4-2.4 5-4.6 5.2.4.4.8 1.1.8 2.3v3.4c0 .3.3.6.7.5 4-1.3 6.9-5.1 6.9-9.6C22 6.6 17.5 2 12 2z" />)
-      case "linkedin":return (<path d="M4.98 3.5C4.98 4.88 3.86 6 2.5 6S0 4.88 0 3.5 1.12 1 2.5 1 4.98 2.12 4.98 3.5zM.5 8h4V23h-4zM9 8h3.8v2.1h.1c.5-1 1.8-2.1 3.7-2.1 3.9 0 4.6 2.6 4.6 6V23h-4v-7.1c0-1.7 0-3.8-2.3-3.8-2.3 0-2.6 1.8-2.6 3.7V23H9z" />)
-      case "mail":    return (<><path d="M4 4h16a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2z"/><path d="M22 6l-10 7L2 6" /></>)
-      default:        return null
-    }
-  }
+/* Component: Contact Item */
+function ContactItem({ icon, label, value, href }) {
   return (
-    <a href="#" className="group inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50" aria-label={icon}>
-      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor" stroke="currentColor" strokeWidth="0" aria-hidden="true">
-        {path(icon)}
-      </svg>
+    <a
+      href={href}
+      className="flex items-center gap-3 group hover:bg-gray-800/50 p-3 rounded-xl transition-all"
+    >
+      <div className="p-2 bg-gray-800 rounded-lg text-gray-400 group-hover:text-white transition-colors">
+        {icon}
+      </div>
+      <div>
+        <div className="text-xs text-gray-500">{label}</div>
+        <div className="text-sm text-white group-hover:text-blue-400 transition-colors">
+          {value}
+        </div>
+      </div>
+      <ExternalLink className="w-4 h-4 text-gray-600 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
     </a>
   )
 }

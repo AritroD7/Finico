@@ -1,36 +1,33 @@
-# --- Node/React (Vite)
-client/node_modules/
-client/dist/
-client/.vite/
-client/.eslintcache
-client/*.local
-client/.DS_Store
-client/.env
-client/.env.local
-client/.env.*.local
-# --- Python/Flask
-server/.venv/
-server/venv/
-server/__pycache__/
-server/.pytest_cache/
-server/instance/
-server/*.sqlite
-server/.python-version
-server/.DS_Store
-server/.env
-# --- IDE/OS
-.vscode/
-.idea/
+# ---- OS / Editor ----
 .DS_Store
 Thumbs.db
-# --- Logs & temp
 *.log
-*.tmp
 *.swp
-# --- Archives
-*.zip
-*.7z
-*.tar
-*.tar.gz
-NUL
-NUL
+*.tmp
+
+# ---- Node / Vite (client) ----
+client/node_modules/
+client/.vite/
+client/dist/
+client/.eslintcache
+client/coverage/
+client/.parcel-cache/
+client/.cache/
+client/.env
+client/.env.*
+!client/.env.example
+
+# ---- Python / Flask (server) ----
+server/__pycache__/
+server/*.pyc
+server/*.pyo
+server/.pytest_cache/
+server/.coverage
+server/htmlcov/
+server/.mypy_cache/
+server/.ruff_cache/
+server/.venv/
+server/instance/
+server/.env
+server/.env.*
+!server/.env.example
