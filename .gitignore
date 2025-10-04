@@ -31,3 +31,7 @@ server/instance/
 server/.env
 server/.env.*
 !server/.env.example
+
+# Local artifacts
+node_modules/
+*.zip

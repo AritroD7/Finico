@@ -2,8 +2,10 @@
 import { Routes, Route, Navigate } from "react-router-dom"
 import Navbar from "./components/Navbar"
 import Footer from "./components/Footer"
+import "./styles/interactivity.css"
 
 import Home from "./pages/Home"
+import SimpleHome from "./pages/SimpleHome"
 import BudgetPlanner from "./pages/BudgetPlanner"
 import WealthForecast from "./pages/WealthForecast"
 import RiskModeling from "./pages/RiskModeling"
@@ -20,7 +22,8 @@ export default function App() {
       <Navbar />
       <main className="max-w-6xl mx-auto p-4">
         <Routes>
-          <Route path="/" element={<Home />} />
+          <Route path="/" element={<SimpleHome />} />
+          <Route path="/classic" element={<Home />} />
           <Route path="/budget" element={<BudgetPlanner />} />
           <Route path="/forecast" element={<WealthForecast />} />
           <Route path="/risk" element={<RiskModeling />} />
